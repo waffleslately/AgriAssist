@@ -37,6 +37,9 @@
         <span class="account-switch-icon" title="Switch Farmer / Login">🔄</span>
       </div>
 
+            <button type="button" class="btn-open-map" onclick="openMapModal()">
+        <span>🗺️</span> Open Google Satellite Map
+      </button>
       <span class="badge badge-live" id="server-badge">● Online</span>
       <a href="/docs" target="_blank" class="btn btn-outline">API Docs</a>
     </div>
@@ -223,17 +226,26 @@
         </div>
       </div>
 
-      <div class="section-title" style="margin-top:14px">🗺️ Field Boundary (Draw on Map)</div>
-      <div class="map-instructions">
-        <span class="pill">Step 1</span> Click <strong>✏️ Draw Polygon</strong> on map<br/>
-        <span class="pill">Step 2</span> Click points around field corners<br/>
-        <span class="pill">Step 3</span> Double-click to complete boundary
+      <div class="section-title" style="margin-top:14px">🗺️ Field Boundary & Location</div>
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div>
+            <div style="font-weight:700;font-size:12px;color:#1e3a8a">Field Boundary on Satellite Map</div>
+            <div style="font-size:10px;color:#3b82f6">Draw exact polygon boundary on real Google Maps</div>
+          </div>
+          <button type="button" class="btn-open-map" onclick="openMapModal()" style="padding:6px 12px;font-size:11.5px">
+            <span>🗺️</span> Open Map
+          </button>
+        </div>
+        <div class="boundary-status" id="boundary-status" style="margin-bottom:0">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="boundary-label">No boundary drawn yet (Click Open Map to draw)</span>
+        </div>
       </div>
-      <div class="boundary-status" id="boundary-status">
-        <span class="status-dot" id="status-dot"></span>
-        <span id="boundary-label">No boundary drawn yet</span>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <button type="button" class="btn-text" onclick="loadSamplePunjabField()">📍 Sample Boundary (Ludhiana)</button>
+        <button class="btn btn-clear" id="clear-btn" style="display:none;margin-bottom:0">🗑 Clear</button>
       </div>
-      <button class="btn btn-clear" id="clear-btn" style="display:none">🗑 Clear Boundary</button>
 
       <div style="display:flex;gap:8px;margin-top:10px">
         <button type="button" class="btn btn-stage" id="stage-btn" style="flex:1" disabled onclick="stageCurrentPlot()">
@@ -260,11 +272,29 @@
     <!-- ─── TAB 2: DRONE IMAGERY & CROP PATCHES ─── -->
     <div class="tab-content" id="tab-drone">
       <div class="section-title">🚁 Drone Aerial Survey Analysis</div>
+            <!-- Target Land Selector for Diagnosis -->
+      <div class="land-select-box">
+        <div class="land-select-box-title">🎯 Target Land to Diagnose:</div>
+        <select id="pest-target-land" class="form-select" onchange="onPestLandSelected(this.value)">
+          <option value="">-- Select A Saved Land to Diagnose --</option>
+        </select>
+        <div style="font-size:10px;color:#15803d;margin-top:4px" id="pest-target-land-hint">Select one specific land to run CIBRC / DGCA diagnosis</div>
+      </div>
+
       <p class="hint-text">
         Upload your own drone orthomosaic imagery or run presets to detect crop health patterns, stressed zones, bare soil gaps, and weed patches.
       </p>
 
       <!-- Drone Image Upload Dropzone -->
+            <!-- Target Land Selector for Diagnosis -->
+      <div class="land-select-box">
+        <div class="land-select-box-title">🎯 Target Land for Drone Survey:</div>
+        <select id="drone-target-land" class="form-select" onchange="onDroneLandSelected(this.value)">
+          <option value="">-- Current Active Form Boundary --</option>
+        </select>
+        <div style="font-size:10px;color:#15803d;margin-top:4px" id="drone-target-land-hint">Using active field coordinates</div>
+      </div>
+
       <div class="drone-upload-box" id="drone-dropzone" onclick="document.getElementById('drone-file-input').click()">
         <input type="file" id="drone-file-input" style="display:none" accept="image/*,.tif,.tiff" onchange="handleDroneFileUpload(event)"/>
         <div class="upload-icon">📷</div>
@@ -387,19 +417,34 @@
     </div>
   </aside>
 
-  <!-- CENTRE: Leaflet Map with Google Maps Real Satellite -->
-  <section class="panel panel-map">
-    <!-- Google Maps Location & Village Search -->
-    <div class="map-floating-search">
-      <input type="text" id="map-search-input" placeholder="🔍 Search village, tehsil or district in India..." onkeydown="if(event.key==='Enter') searchMapLocation()"/>
-      <button class="btn btn-search" onclick="searchMapLocation()">Search</button>
+  <!-- MAP MODAL (Opened separately on demand) -->
+  <div class="map-modal-overlay" id="map-modal-overlay" style="display:none">
+    <div class="map-modal-container">
+      <div class="map-modal-header">
+        <div class="map-modal-title">
+          <span>🌍</span> Google Maps Real Satellite — Draw / Inspect Land Boundaries
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <button type="button" class="btn btn-primary" style="padding:4px 12px;font-size:11.5px" onclick="closeMapModal()">
+            ✅ Done / Apply Boundary
+          </button>
+          <button type="button" class="map-modal-close" onclick="closeMapModal()">✕ Close</button>
+        </div>
+      </div>
+      <div class="map-modal-body">
+        <!-- Floating Location Search inside Map Modal -->
+        <div class="map-floating-search">
+          <input type="text" id="map-search-input" placeholder="🔍 Search village, tehsil or district in India..." onkeydown="if(event.key==='Enter') searchMapLocation()"/>
+          <button class="btn btn-search" onclick="searchMapLocation()">Search</button>
+        </div>
+        <div id="map" style="width:100%;height:100%"></div>
+        <div class="map-hint-bar">
+          <span>🛰️ Real Google Maps Satellite & Sentinel-2 Layer</span>
+          <span id="map-coords">Lat: 30.90250, Lng: 75.85250 (Punjab)</span>
+        </div>
+      </div>
     </div>
-    <div id="map"></div>
-    <div class="map-hint-bar">
-      <span>🛰️ Sentinel-2 & High-Res Drone View</span>
-      <span id="map-coords">Lat: 30.90250, Lng: 75.85250 (Punjab)</span>
-    </div>
-  </section>
+  </div>
 
   <!-- RIGHT PANEL: Dynamic Results & My Farms -->
   <aside class="panel panel-right" id="results-panel">

@@ -10,6 +10,85 @@ let currentFarmer = {
 };
 
 // Initialize App
+
+// ===== MAP MODAL CONTROLS =====
+
+window.openMapModal = function() {
+  const overlay = document.getElementById('map-modal-overlay');
+  if (overlay) {
+    overlay.style.display = 'flex';
+    // Invalidate Leaflet map size once container is visible
+    setTimeout(() => {
+      if (window.map) {
+        window.map.invalidateSize();
+        if (window.currentCoords && window.drawnItems && window.drawnItems.getLayers().length > 0) {
+          window.map.fitBounds(window.drawnItems.getBounds(), { padding: [40, 40] });
+        }
+      }
+    }, 150);
+  }
+};
+
+window.closeMapModal = function() {
+  const overlay = document.getElementById('map-modal-overlay');
+  if (overlay) overlay.style.display = 'none';
+};
+
+// Update Land Selectors across tabs
+function updateDiagnosisLandSelectors(farmer) {
+  const droneSel = document.getElementById('drone-target-land');
+  const pestSel = document.getElementById('pest-target-land');
+  const plots = (farmer && farmer.plots) ? farmer.plots : [];
+
+  if (droneSel) {
+    droneSel.innerHTML = '<option value="">-- Active Form Field --</option>';
+    plots.forEach((p, idx) => {
+      const opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = `${p.plot_name} (${p.crop_name} - ${p.area_acres} ac)`;
+      droneSel.appendChild(opt);
+    });
+  }
+
+  if (pestSel) {
+    pestSel.innerHTML = '<option value="">-- Select One Land to Diagnose --</option>';
+    plots.forEach((p, idx) => {
+      const opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = `${p.plot_name} (${p.crop_name} - ${p.area_acres} ac)`;
+      pestSel.appendChild(opt);
+    });
+  }
+}
+
+window.onDroneLandSelected = function(idx) {
+  const hint = document.getElementById('drone-target-land-hint');
+  if (idx === '' || !currentFarmer.plots[idx]) {
+    if (hint) hint.textContent = 'Using active field coordinates';
+    return;
+  }
+  const p = currentFarmer.plots[idx];
+  const cropSel = document.getElementById('drone-crop');
+  const acresInput = document.getElementById('drone-acres');
+  if (cropSel) cropSel.value = p.crop_name || 'wheat';
+  if (acresInput) acresInput.value = p.area_acres || 3.5;
+  if (hint) hint.textContent = `Target set to: ${p.plot_name} (${p.crop_name}, ${p.area_acres} ac)`;
+};
+
+window.onPestLandSelected = function(idx) {
+  const hint = document.getElementById('pest-target-land-hint');
+  if (idx === '' || !currentFarmer.plots[idx]) {
+    if (hint) hint.textContent = 'Select one specific land to run CIBRC / DGCA diagnosis';
+    return;
+  }
+  const p = currentFarmer.plots[idx];
+  const cropSel = document.getElementById('pest-crop');
+  if (cropSel) {
+    cropSel.value = p.crop_name || 'wheat';
+  }
+  if (hint) hint.textContent = `Diagnosing: ${p.plot_name} (${p.crop_name}, ${p.stage || 'Active growth'})`;
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
   const sowDate = new Date();
   sowDate.setDate(sowDate.getDate() - 25);
@@ -301,6 +380,7 @@ async function loadFarmerSession(phone) {
   if (currentFarmer.village) document.getElementById('village').value = currentFarmer.village;
 
   renderMyFarms(currentFarmer);
+  updateDiagnosisLandSelectors(currentFarmer);
   const select = document.getElementById('saved-plots-select');
   select.innerHTML = '<option value="">-- Select Saved Plot --</option>';
   if (currentFarmer.plots && currentFarmer.plots.length > 0) {
@@ -536,7 +616,13 @@ window.triggerPestDiagnosis = async function() {
   const droneSpray = document.getElementById('drone-spray').checked;
 
   const payload = {
-    plot_id: '00000000-0000-0000-0000-000000000001',
+    plot_id: (function() {
+      const sel = document.getElementById('pest-target-land');
+      if (sel && sel.value !== '' && currentFarmer.plots[sel.value]) {
+        return currentFarmer.plots[sel.value].plot_id || '00000000-0000-0000-0000-000000000001';
+      }
+      return '00000000-0000-0000-0000-000000000001';
+    })(),
     crop_cycle_id: '00000000-0000-0000-0000-000000000002',
     crop_name: crop,
     pest_key: pest,

@@ -59,7 +59,7 @@ body { font-family: var(--font); background: var(--gray-100); color: var(--gray-
 /* ===== LAYOUT ===== */
 .app-main {
   display: grid;
-  grid-template-columns: var(--panel-left-w) 1fr var(--panel-right-w);
+  grid-template-columns: 440px 1fr;
   height: calc(100vh - var(--header-h));
   overflow: hidden;
 }
@@ -516,4 +516,99 @@ body { font-family: var(--font); background: var(--gray-100); color: var(--gray-
 }
 .btn-batch-save:hover:not(:disabled) {
   background: #14532d;
+}
+
+/* ===== MAP DRAWER / MODAL STYLING ===== */
+.btn-open-map {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 8px 14px;
+  border: none;
+  cursor: pointer;
+  transition: all .2s;
+  box-shadow: 0 2px 6px rgba(2,132,199,0.3);
+}
+.btn-open-map:hover {
+  background: #075985;
+  transform: translateY(-1px);
+}
+
+.map-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.map-modal-container {
+  background: #fff;
+  width: 95vw;
+  max-width: 1200px;
+  height: 85vh;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+.map-modal-header {
+  height: 52px;
+  background: #1e293b;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+}
+.map-modal-title {
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.map-modal-close {
+  background: #334155;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.map-modal-close:hover {
+  background: #ef4444;
+}
+.map-modal-body {
+  flex: 1;
+  position: relative;
+  width: 100%;
+  height: calc(100% - 52px);
+}
+
+/* Land Selector Highlight Box */
+.land-select-box {
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.land-select-box-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #15803d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
 }
