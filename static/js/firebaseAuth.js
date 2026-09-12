@@ -167,6 +167,9 @@ function resendOtp() {
 // ── Friendly error messages ───────────────────────────────────────────────
 function friendlyError(err) {
   const code = err.code || '';
+  if (code.includes('invalid-api-key') || code.includes('api-key-not-valid')) {
+    return 'Invalid Firebase API Key. Please add your real Firebase API Key in the backend .env file.';
+  }
   if (code.includes('invalid-phone-number'))  return 'Invalid phone number format.';
   if (code.includes('too-many-requests'))      return 'Too many attempts. Please wait a few minutes.';
   if (code.includes('invalid-verification'))   return 'Wrong code. Please try again.';
