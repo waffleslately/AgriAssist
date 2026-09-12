@@ -66,13 +66,12 @@ async function initFirebase() {
 
 // ── reCAPTCHA setup (invisible) ───────────────────────────────────────────
 function setupRecaptcha() {
-  if (_recaptchaVerifier) {
-    try { _recaptchaVerifier.clear(); } catch (_) {}
+  if (!_recaptchaVerifier) {
+    _recaptchaVerifier = new RecaptchaVerifier(_auth, 'recaptcha-container', {
+      size: 'invisible',
+      callback: () => {},
+    });
   }
-  _recaptchaVerifier = new RecaptchaVerifier(_auth, 'recaptcha-container', {
-    size: 'invisible',
-    callback: () => {},  // auto-resolved for invisible reCAPTCHA
-  });
 }
 
 // ── Step 1: Send OTP ──────────────────────────────────────────────────────
@@ -102,7 +101,7 @@ async function sendOtp() {
   } catch (err) {
     console.error('[Auth] sendOtp error:', err.code);
     showMsg(friendlyError(err), true);
-    setupRecaptcha();  // reset reCAPTCHA on failure
+    // _recaptchaVerifier handles its own reset on failure
   } finally {
     setBusy(sendBtn, false, 'Send OTP');
   }

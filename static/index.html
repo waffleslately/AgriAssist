@@ -94,6 +94,9 @@
       </div>
     </div>
     <div class="header-actions">
+      <button class="btn btn-outline" style="margin-right: 8px; font-size: 11px;" onclick="localStorage.removeItem('kisan_token'); localStorage.removeItem('kisan_phone'); window.location.reload();">
+        Logout
+      </button>
       <!-- Farmer Account Button / Session Chip -->
       <div class="account-chip" id="account-chip" onclick="openAuthModal()">
         <span class="account-avatar">👨‍🌾</span>
