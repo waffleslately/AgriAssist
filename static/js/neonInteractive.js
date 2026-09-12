@@ -30,8 +30,8 @@ window.toggleTheme = function() {
   
   if (nextTheme === 'dark') {
     if (icon) icon.textContent = '⚡';
-    if (text) text.textContent = 'Neon Dark';
-    showToast("⚡ Cyber Neon Dark Theme Activated!");
+    if (text) text.textContent = 'Neon Black';
+    showToast("⚡ Cyber Neon-Black Mode Activated!");
   } else {
     if (icon) icon.textContent = '🌓';
     if (text) text.textContent = 'Theme: Light';
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const text = document.getElementById('theme-text');
     if (savedTheme === 'dark') {
       if (icon) icon.textContent = '⚡';
-      if (text) text.textContent = 'Neon Dark';
+      if (text) text.textContent = 'Neon Black';
     }
   }
   initDroneCanvas();

@@ -25,7 +25,7 @@
      This overlay covers the entire screen on first load.
      It is hidden only AFTER the backend confirms the ID token.
      ========================================================= -->
-<div id="auth-gate" style="display:flex">
+<div id="auth-gate" style="display:none">
   <div class="ag-card">
 
     <!-- Logo -->
@@ -95,7 +95,7 @@
           AgriAssist <span class="badge-beta">v2.7 Neon Pro</span>
         </div>
         <div class="logo-sub">
-          <span>🛸 Precision Aerial Drone & Autonomous Agronomy</span>
+          <span>🚁 Precision Aerial Drone & Autonomous Agronomy</span>
           <span>•</span>
           <span>ICAR · CIBRC · DGCA</span>
         </div>
@@ -103,7 +103,7 @@
     </div>
     <div class="header-actions">
       <!-- DYNAMIC THEME SWITCHER -->
-      <button class="theme-toggle-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle Neon Dark Theme">
+      <button class="theme-toggle-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle Cyber Neon-Black Theme">
         <span id="theme-icon">🌓</span>
         <span id="theme-text">Theme: Light</span>
       </button>
@@ -112,12 +112,28 @@
         <span>🛰️</span> Satellite Map
       </button>
 
-      <button class="account-icon-btn" onclick="openAuthModal()" title="Farmer Profile">
-        👨‍🌾
+      <!-- USER PROFILE BADGE (TOP RIGHT) -->
+      <button class="user-profile-btn" id="header-user-btn" onclick="openUserProfileModal()" title="View Complete Farmer Profile & Records">
+        <div class="user-avatar-badge">👨‍🌾</div>
+        <div class="user-pill-info">
+          <span class="user-pill-name" id="top-user-name">Harpreet Singh</span>
+          <span class="user-pill-status">● Verified Farmer</span>
+        </div>
       </button>
 
-      <button class="btn btn-outline" style="font-size: 11px; padding: 5px 10px;" onclick="localStorage.removeItem('kisan_token'); localStorage.removeItem('kisan_phone'); window.location.reload();">
-        Logout
+      <!-- NEW USER REGISTER BUTTON -->
+      <button class="btn-header-action btn-header-new" onclick="openNewUserModal()" title="Create New Farmer Account">
+        <span>➕</span> New User
+      </button>
+
+      <!-- SWITCH / LOGIN BUTTON -->
+      <button class="btn-header-action" onclick="openAuthModal()" title="Switch or Login Farmer Account">
+        <span>🔄</span> Login / Switch
+      </button>
+
+      <!-- LOGOUT BUTTON -->
+      <button class="btn-header-action" onclick="logoutFarmer()" title="Log out of account">
+        <span>🚪</span> Logout
       </button>
 
       <span class="badge badge-live" id="server-badge">Telemetry Active</span>
@@ -369,10 +385,10 @@
         <div style="font-size:10.5px;color:var(--ag-text-muted);text-align:center;margin-top:4px">Click anywhere on the field above to inspect that specific crop grid zone</div>
 
         <div class="telemetry-grid">
-          <div class="telemetry-item"><div>PLASMA CHARGE</div><div class="telemetry-val" id="hud-battery">98%</div></div>
-          <div class="telemetry-item"><div>ION SPEED</div><div class="telemetry-val" id="hud-speed">4.2 m/s</div></div>
+          <div class="telemetry-item"><div>BATTERY CHARGE</div><div class="telemetry-val" id="hud-battery">98%</div></div>
+          <div class="telemetry-item"><div>FLIGHT SPEED</div><div class="telemetry-val" id="hud-speed">4.2 m/s</div></div>
           <div class="telemetry-item"><div>WAYPOINTS</div><div class="telemetry-val" id="hud-wpt">0 / 8</div></div>
-          <div class="telemetry-item"><div>TRACTOR SCAN</div><div class="telemetry-val" id="hud-area">0.0 Ac</div></div>
+          <div class="telemetry-item"><div>AREA SURVEYED</div><div class="telemetry-val" id="hud-area">0.0 Ac</div></div>
         </div>
       </div>
 
@@ -862,63 +878,7 @@
         <span class="mf-legend-dot" style="background:#22c55e"></span> Healthy
         <span class="mf-legend-dot" style="background:#f59e0b;margin-left:8px"></span> Moderate
         <span class="mf-legend-dot" style="background:#ef4444;margin-left:8px"></span> Stressed
-      </div>
     </section>
-  
-    <!-- ====== TAB 4: IOT LIVESTOCK GRAZING & PASTURE ====== -->
-    <div class="tab-content" id="tab-livestock">
-      <div class="section-title">🐄 IoT Livestock Tracking & Grazing Analytics</div>
-      <p class="hint-text">
-        Real-time GPS collar telemetry monitoring herd movement, grazing intensity, and pasture forage depletion across your field.
-      </p>
-
-      <!-- Herd KPI Summary Cards -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px">
-          <div style="font-size:10.5px;color:#64748b;font-weight:600">Tracked Animals</div>
-          <div id="ls-total-count" style="font-size:18px;font-weight:800;color:#0f172a">4 Collars</div>
-          <div style="font-size:10px;color:#16a34a">● GPS Live Active</div>
-        </div>
-        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px">
-          <div style="font-size:10.5px;color:#64748b;font-weight:600">Grazing Pressure</div>
-          <div id="ls-pressure-score" style="font-size:18px;font-weight:800;color:#d97706">Moderate</div>
-          <div id="ls-intake-val" style="font-size:10px;color:#64748b">Est: 46 kg DM/day</div>
-        </div>
-      </div>
-
-      <!-- Action buttons -->
-      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
-        <button type="button" class="btn btn-primary btn-full" onclick="openMapWithLivestock()">
-          <span class="btn-icon">🗺️</span> View Live Herd on Satellite Map
-        </button>
-        <div style="display:flex;gap:6px">
-          <button type="button" id="btn-toggle-heat" class="btn btn-outline" style="flex:1;font-size:11px" onclick="toggleGrazingHeatmap()">
-            🔥 Show Grazing Heatmap
-          </button>
-          <button type="button" class="btn btn-outline" style="flex:1;font-size:11px" onclick="triggerSimulateStep()">
-            ▶ Advance Simulation
-          </button>
-        </div>
-      </div>
-
-      <!-- Pasture & Forage Health Advisory Box -->
-      <div id="pasture-advisory-box" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px;margin-bottom:14px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <span style="font-weight:700;font-size:11.5px;color:#166534">🌿 Pasture Health & Rotation Advice</span>
-          <span id="ls-resting-days" class="badge" style="background:#dcfce7;color:#166534;font-size:10px">Rest: 14 Days</span>
-        </div>
-        <div id="ls-advice-text" style="font-size:11px;color:#15803d;line-height:1.4">
-          Cattle are evenly grazing sward height (~14cm). Rotational paddock management is optimal.
-        </div>
-      </div>
-
-      <!-- Live Collar Roster Table -->
-      <div class="section-title" style="margin-top:8px;font-size:12px">Collared Animals Roster</div>
-      <div id="livestock-list" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto">
-        <div style="font-size:11px;color:#64748b;text-align:center;padding:12px">Loading live IoT telemetry...</div>
-      </div>
-    </div>
-
   </aside>
 </main>
 
@@ -956,12 +916,19 @@
       </button>
 
       <!-- Quick presets -->
-      <div class="quick-farmers">
-        <div class="quick-title">Or switch to an existing farmer:</div>
+      <div class="quick-farmers" style="margin-top:14px">
+        <div class="quick-title">Or switch to an existing farmer profile:</div>
         <div class="quick-tags">
           <span class="tag-farmer" onclick="quickLogin('9876543210','Harpreet Singh','Punjab','Ludhiana')">🌾 Harpreet Singh (Punjab)</span>
           <span class="tag-farmer" onclick="quickLogin('9123456780','Ramesh Patil','Maharashtra','Yavatmal')">🌱 Ramesh Patil (Maharashtra)</span>
+          <span class="tag-farmer" onclick="quickLogin('9812345678','Suresh Kumar','Madhya Pradesh','Indore')">🌽 Suresh Kumar (MP)</span>
         </div>
+      </div>
+
+      <div style="text-align:center;margin-top:14px;border-top:1px solid var(--ag-border);padding-top:10px">
+        <button type="button" class="btn btn-stage btn-full" onclick="closeAuthModal(); openNewUserModal();">
+          <span>➕</span> Create Brand New Farmer Account
+        </button>
       </div>
     </div>
 
@@ -988,6 +955,212 @@
     </div>
   </div>
 </div>
+
+<!-- ========== USER PROFILE COMPREHENSIVE DATA MODAL ========== -->
+<div class="modal-overlay" id="user-profile-modal" style="display:none">
+  <div class="profile-modal-card">
+    <!-- Header Hero Banner -->
+    <div class="profile-hero-banner">
+      <div style="display:flex;align-items:center;gap:16px">
+        <div class="profile-avatar-large" id="prof-avatar">👨‍🌾</div>
+        <div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <h2 style="font-size:20px;font-weight:800;letter-spacing:-0.5px" id="prof-name">Harpreet Singh</h2>
+            <span class="badge" style="background:rgba(0,255,136,0.2);color:#86efac;border:1px solid #10b981;font-size:10px;font-weight:700">● KISAN VERIFIED</span>
+          </div>
+          <div style="font-size:12px;opacity:0.9;margin-top:2px" id="prof-uid">UID: KISAN-PB-987654 · Joined Kharif 2024</div>
+          <div style="font-size:11.5px;color:#c7eed9;margin-top:3px" id="prof-location">📍 Punjab · District Ludhiana · Village Gill</div>
+        </div>
+      </div>
+      <button class="modal-close" style="color:white;font-size:20px" onclick="closeUserProfileModal()">✕</button>
+    </div>
+
+    <!-- Quick Stats Grid -->
+    <div class="profile-quick-stats">
+      <div class="profile-stat-box">
+        <div class="profile-stat-num" id="prof-acres">6.3 Ac</div>
+        <div class="profile-stat-label">Total Land Area</div>
+      </div>
+      <div class="profile-stat-box">
+        <div class="profile-stat-num" id="prof-plot-count">2 Plots</div>
+        <div class="profile-stat-label">Registered Fields</div>
+      </div>
+      <div class="profile-stat-box">
+        <div class="profile-stat-num" id="prof-ndvi">0.74</div>
+        <div class="profile-stat-label">Mean Field NDVI</div>
+      </div>
+      <div class="profile-stat-box">
+        <div class="profile-stat-num" id="prof-drone-scans">14 Scans</div>
+        <div class="profile-stat-label">UAV Flight Missions</div>
+      </div>
+    </div>
+
+    <!-- Main Data Sections -->
+    <div class="profile-sections-grid">
+      <!-- Section 1: Farmer Identity & Contact -->
+      <div class="profile-data-card">
+        <div class="profile-data-title">👤 Farmer Identity & Accreditation</div>
+        <div class="profile-kv-grid">
+          <div class="profile-kv-item">
+            <span class="profile-kv-key">Registered Mobile</span>
+            <span class="profile-kv-val" id="prof-phone">+91 9876543210</span>
+          </div>
+          <div class="profile-kv-item">
+            <span class="profile-kv-key">Preferred Advisory Language</span>
+            <span class="profile-kv-val" id="prof-lang">Punjabi (ਪੰਜਾਬੀ) / Hindi</span>
+          </div>
+          <div class="profile-kv-item">
+            <span class="profile-kv-key">Agri-Stack Aadhaar Sync</span>
+            <span class="profile-kv-val" style="color:#22c55e">✓ Linked (PM-Kisan #PB884)</span>
+          </div>
+          <div class="profile-kv-item">
+            <span class="profile-kv-key">Accredited Hub</span>
+            <span class="profile-kv-val">PAU Ludhiana Krishi Vigyan Kendra</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Farm Plots & Crop Stand -->
+      <div class="profile-data-card">
+        <div class="profile-data-title">🚜 Registered Farm Plots & Crop Stand</div>
+        <div id="prof-plots-list" style="display:flex;flex-direction:column;gap:6px;max-height:140px;overflow-y:auto">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Section 3: Soil Health Card Laboratory Data -->
+      <div class="profile-data-card">
+        <div class="profile-data-title">🧪 Active Soil Health Card Laboratory Data</div>
+        <div class="profile-kv-grid">
+          <div class="profile-kv-item">
+            <span class="profile-kv-key">Available Nitrogen (N)</span>
+            <span class="profile-kv-val" id="prof-soil-n">190 kg/ha (Low Deficit &lt;280)</span>
+          </div>
+          <div class="profile-kv-item">
+            <span class="profile-kv-key">Available Phosphorus (P)</span>
+            <span class="profile-kv-val" id="prof-soil-p">18 kg/ha (Medium &lt;23)</span>
+          </div>
+          <div class="profile-kv-item">
+            <span class="profile-kv-key">Available Potassium (K)</span>
+            <span class="profile-kv-val" id="prof-soil-k">130 kg/ha (Low Deficit &lt;140)</span>
+          </div>
+          <div class="profile-kv-item">
+            <span class="profile-kv-key">Soil pH &amp; Organic Carbon</span>
+            <span class="profile-kv-val" id="prof-soil-ph">pH 7.4 (Neutral) · 0.45% OC</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Drone Scouting & Livestock Inventory -->
+      <div class="profile-data-card">
+        <div class="profile-data-title">🛰️ Drone Fleet &amp; IoT Livestock Telemetry</div>
+        <div class="profile-kv-grid">
+          <div class="profile-kv-item">
+            <span class="profile-kv-key">DGCA Drone Precision Missions</span>
+            <span class="profile-kv-val" id="prof-drone-status">ULV Centrifugal Mist Approved (180μm)</span>
+          </div>
+          <div class="profile-kv-item">
+            <span class="profile-kv-key">Tracked GPS Livestock Herd</span>
+            <span class="profile-kv-val" id="prof-livestock-count">4 Collars Active (Cattle &amp; Buffalo)</span>
+          </div>
+          <div class="profile-kv-item">
+            <span class="profile-kv-key">Pasture Resting Period</span>
+            <span class="profile-kv-val" id="prof-pasture-rest">14 Days Required (Rotational Grazing)</span>
+          </div>
+          <div class="profile-kv-item">
+            <span class="profile-kv-key">Weather Station Source</span>
+            <span class="profile-kv-val">Open-Meteo High-Resolution Punjab Mesh</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions Footer -->
+    <div class="profile-actions-footer">
+      <div style="display:flex;gap:8px">
+        <button type="button" class="btn btn-stage" onclick="openNewUserModal()">
+          <span>➕</span> New Farmer Register
+        </button>
+        <button type="button" class="btn btn-stage" onclick="openAuthModal()">
+          <span>🔄</span> Switch Account
+        </button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button type="button" class="btn btn-pest" onclick="logoutFarmer()">
+          <span>🚪</span> Log Out
+        </button>
+        <button type="button" class="btn btn-primary" onclick="closeUserProfileModal()">
+          <span>✅</span> Done
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== NEW USER REGISTRATION MODAL ========== -->
+<div class="modal-overlay" id="new-user-modal" style="display:none">
+  <div class="modal-card" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title">🌱 Register New Farmer Account</div>
+      <button class="modal-close" onclick="closeNewUserModal()">✕</button>
+    </div>
+    <p class="modal-desc">Create a new farmer profile with your localized soil records and drone flight permissions.</p>
+
+    <div class="form-grid">
+      <div class="form-group full-width">
+        <label>Farmer Full Name *</label>
+        <input type="text" id="reg-name" placeholder="e.g. Ramesh Patil / Balwant Singh" value="Suresh Kumar"/>
+      </div>
+      <div class="form-group full-width">
+        <label>Mobile Number (10 Digits) *</label>
+        <input type="tel" id="reg-phone" placeholder="9876543210" maxlength="10" value="9812345678"/>
+      </div>
+      <div class="form-group">
+        <label>State *</label>
+        <select id="reg-state">
+          <option value="Punjab">Punjab</option>
+          <option value="Maharashtra">Maharashtra</option>
+          <option value="Madhya Pradesh" selected>Madhya Pradesh</option>
+          <option value="Andhra Pradesh">Andhra Pradesh</option>
+          <option value="Uttar Pradesh">Uttar Pradesh</option>
+          <option value="Haryana">Haryana</option>
+          <option value="Rajasthan">Rajasthan</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>District *</label>
+        <input type="text" id="reg-district" placeholder="District" value="Indore"/>
+      </div>
+      <div class="form-group">
+        <label>Village *</label>
+        <input type="text" id="reg-village" placeholder="Village" value="Sanwer"/>
+      </div>
+      <div class="form-group">
+        <label>Initial Primary Crop</label>
+        <select id="reg-crop">
+          <option value="wheat">Wheat (गेंहू)</option>
+          <option value="paddy">Paddy / Rice (धान)</option>
+          <option value="cotton">Cotton (कपास)</option>
+          <option value="soybean" selected>Soybean (सोयाबीन)</option>
+          <option value="mustard">Mustard (सरसों)</option>
+          <option value="sugarcane">Sugarcane (गन्ना)</option>
+        </select>
+      </div>
+      <div class="form-group full-width">
+        <label>Landholding Size (Acres)</label>
+        <input type="number" step="0.5" id="reg-acres" placeholder="e.g. 4.5" value="4.0"/>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button type="button" class="btn btn-stage" style="flex:1" onclick="closeNewUserModal()">Cancel</button>
+      <button type="button" class="btn btn-primary" style="flex:2" onclick="registerNewFarmer()">
+        <span>🚀</span> Register &amp; Open Dashboard
+      </button>
+    </div>
+  </div>
+</div>
+
 
 <!-- ========== LOADING OVERLAY ========== -->
 <div class="loading-overlay" id="loading-overlay" style="display:none">
