@@ -1,162 +1,177 @@
-# AgriAssist
+# 🌾 AgriAssist — Intelligent Farming & Drone Platform
 
-Production-grade, modular geospatial platform for **Soil, Crop, Drone & Pest Advisory** scoped specifically for Indian agriculture (ICAR, CIBRC, and DGCA standards).
+A modular geospatial web platform for **Soil Health, Crop Nutrition, Drone Imagery Analysis, and Pest Diagnosis** built specifically for Indian agriculture (following **ICAR**, **CIBRC**, and **DGCA** guidelines).
 
 ---
 
 ## 🌟 Key Features
 
-1. **Interactive Web Frontend (`/app`)**:
-   - Leaflet.js interactive satellite map with full polygon draw tool for farm boundaries.
-   - Live plot onboarding form with bilingual language toggle (Hindi / English).
-   - Real-time advisory visualization: acreage, Sentinel-2 NDVI health meter, 48h rainfall alert, soil nutrient status, and commercial fertilizer bags per acre (Urea, DAP, MOP).
-   - Dedicated **Pest & Disease Diagnosis tab** with economic threshold evaluations and drone flight prescriptions.
+1. **Interactive Google Satellite Map (On-Demand Modal)**:
+   - Real-time high-resolution satellite imagery (Google Hybrid, Satellite, Terrain, Esri WorldImagery).
+   - Draw exact farm boundaries with polygon tools or search any Indian village/tehsil/district.
+   - Map opens in a dedicated modal overlay, keeping the dashboard clean and fast.
 
-2. **Spatial Plot Onboarding (`/api/v1/plots/onboard`)**:
-   - Accepts GeoJSON polygon boundary drawn by farmer.
-   - Calculates geodesic acreage in acres.
-   - Validates coordinates, boundary closure, and orientation.
+2. **Save Multiple Lands & Simultaneous Batch Saving**:
+   - Save multiple separate fields per farmer account (e.g., *North Field*, *Canal Side*, *Khasra 42*).
+   - **➕ Add to Batch**: Draw land 1, set crop, add to batch; draw land 2, add to batch; then click **💾 Save All Lands at Same Time** to process and save all fields together.
+   - **"My Farms Dashboard"**: Instantly view all your saved lands with live NDVI vigor badges (Healthy / Moderate / Stressed) and one-click map restoration.
 
-3. **PostGIS Spatial Soil Health Card Query**:
-   - Queries nearest lab-tested Soil Health Card reference points using PostGIS `<->` spatial operator.
-   - Graceful fallback to state/district ICAR agro-climatic fertility benchmarks if no sample exists within 15 km.
+3. **Sentinel-2 NDVI & 60-Day Historical Trend**:
+   - Computes vegetation health and canopy moisture proxy.
+   - Renders a 60-day NDVI trend inline SVG chart showing crop growth progress.
 
-4. **Google Earth Engine (GEE) Dual-Mode Adapter**:
-   - **Live Mode**: Queries Sentinel-2 Surface Reflectance (`COPERNICUS/S2_SR_HARMONIZED`), performs cloud-masking (<30%), computes mean NDVI and NDMI moisture over plot geometry.
-   - **Dev Simulation Mode**: Out-of-the-box local development and testing without requiring immediate GEE service account credentials.
+4. **Live 7-Day Weather Outlook & Rainfall Safety Guard**:
+   - Fetches live 7-day daily forecasts (temperatures, precipitation) via Open-Meteo.
+   - Flags heavy rain alerts (>15 mm in 48h) to advise holding fertilizer application and prevent nutrient runoff.
 
-5. **Weather Safety Guard (Open-Meteo)**:
-   - Evaluates 7-day rainfall forecast; flags **heavy rain alerts (>15 mm in 48h)** to hold nitrogen broadcasting and prevent fertilizer runoff.
-
-6. **Agronomy Rule Engine (ICAR Aligned)**:
-   - Soil Test Crop Response (STCR) adjustment factors: Low (+25%), Medium (100%), High (-25%).
-   - Translates N-P-K nutrient deficits into standard **Indian commercial bags**:
+5. **ICAR STCR Fertilizer Prescription (9 Crops)**:
+   - Soil Test Crop Response (STCR) calculations for: **Wheat, Paddy/Rice, Cotton, Soybean, Maize, Sugarcane, Mustard, Gram/Chickpea, and Sunflower**.
+   - Converts nutrient deficits into commercial bag recommendations:
      - **Urea**: 45 kg bag (46% N)
      - **DAP**: 50 kg bag (18% N, 46% P₂O₅)
      - **MOP**: 50 kg bag (60% K₂O)
-   - Crop stages supported: Paddy, Wheat, Cotton, Soybean, Maize.
+   - Supports manual ground-truth overrides (tested soil N/P/K/pH/OC and local rain gauge readings).
 
-7. **Drone Orthomosaic Patch Detection (`/api/v1/drone/surveys`)**:
-   - Ingests drone aerial imagery or spatial orthomosaics.
-   - Identifies sub-plot vigor zones: `healthy_stand`, `stressed_crop`, `bare_soil_gap`, and `weed_cluster`.
-   - Computes affected area in acres and spatial polygon boundaries.
-
-8. **Pest & Disease Diagnosis with DGCA Drone Prescriptions (`/api/v1/pest/diagnose`)**:
+6. **Targeted Pest & Drone Diagnosis**:
+   - Choose a specific target land from your saved lands to run diagnosis exclusively on that field.
    - Evaluates Economic Threshold Level (ETL) breaches against CIBRC approved guidelines.
-   - Generates three-tier Integrated Pest Management (IPM): Cultural, Biological, and Chemical.
-   - Computes **DGCA Ultra-Low Volume (ULV) Drone Spray Missions** (10 L/acre, 1.8m flight altitude, 3.5 m/s speed, anti-drift nozzles).
+   - Generates DGCA Ultra-Low Volume (ULV) drone spray prescriptions (10 L/acre, 1.8m flight altitude, 3.5 m/s speed).
 
-9. **Bilingual Advisory Cards**:
-   - Auto-generates farmer-friendly advice in **Hindi** (हिंदी) and **English** with exact bag quantities per acre.
-
----
-
-## 📁 Directory Structure
-
-```
-agri-backend/
-├── docker-compose.yml              # PostgreSQL 16 + PostGIS 3.4, Redis, FastAPI App
-├── Dockerfile                      # Python 3.11 with GDAL, GEOS, PROJ system libs
-├── requirements.txt                # FastAPI, GeoAlchemy2, Shapely, GEE, SQLAlchemy
-├── .env.example                    # Environment settings template
-├── .gitignore                      # Git ignore rules for Python, virtualenv & secrets
-├── alembic.ini                     # Migration configuration
-├── alembic/
-│   ├── env.py                      # Async PostGIS-aware migration engine
-│   └── versions/
-│       └── 0001_initial_postgis_schema.py  # DDL with spatial GiST indexes
-├── static/                         # Web Frontend Single Page Application
-│   ├── index.html                  # Leaflet map, tabs, bilingual forms & cards
-│   ├── css/
-│   │   └── app.css                 # Clean responsive design & metrics styles
-│   └── js/
-│       ├── map.js                  # Leaflet map, Esri WorldImagery & polygon draw
-│       ├── api.js                  # REST API client
-│       └── app.js                  # Dynamic UI rendering & tab controller
-├── app/
-│   ├── main.py                     # FastAPI entrypoint, CORS, static file mount
-│   ├── core/                       # App settings, security & JWT
-│   ├── db/                         # Async sessionmaker & base
-│   ├── models/                     # PostGIS & relational SQLAlchemy models
-│   ├── schemas/                    # Pydantic v2 schemas & GeoJSON validators
-│   ├── services/
-│   │   ├── gee_service.py          # Dual-mode Sentinel-2 client
-│   │   ├── weather_service.py      # 7-day precipitation & forecast
-│   │   ├── soil_service.py         # Spatial SHC lookup + fallback
-│   │   ├── agronomy_engine.py      # Fertilizer dose & bag converter
-│   │   ├── drone_service.py        # Orthomosaic sub-plot patch classifier
-│   │   ├── pest_control_engine.py  # CIBRC IPM & DGCA drone prescription
-│   │   └── localization_service.py # Hindi/English advisory cards
-│   ├── seeds/                      # ICAR crop guidelines & soil baselines
-│   └── api/v1/
-│       ├── api.py                  # Router aggregator (9 routers)
-│       └── endpoints/              # Auth, plots, crop cycles, drone, pest, soil
-└── tests/                          # 11 unit & integration tests
-```
+7. **Multilingual Advisory**:
+   - Field advisory cards available in 4 languages: **हिंदी (Hindi)**, **English**, **ਪੰਜਾਬੀ (Punjabi)**, and **मराठी (Marathi)**.
+   - Instant WhatsApp sharing & print-ready farmer slips.
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start Guide (For Team Members)
 
-### 1. Run with Python Virtual Environment
+### Prerequisites
+- **Python 3.10+** (Python 3.11, 3.12, 3.13, 3.14 supported)
+- **Git** installed
 
+---
+
+### Step 1: Clone the Repository
 ```bash
-# Clone the repository
-git clone <your-repo-url>
-cd agri-backend
+git clone https://github.com/waffleslately/AgriAssist.git
+cd AgriAssist
+```
 
-# Create virtual environment
+---
+
+### Step 2: Set Up Virtual Environment
+
+#### On Windows (PowerShell / Command Prompt):
+```powershell
 python -m venv venv
+.\venv\Scripts\activate
+```
+*(If PowerShell shows an execution policy warning, run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` and re-run).*
 
-# Activate virtual environment
-# On Windows:
-.\venv\Scripts\Activate.ps1
-# On Linux/macOS:
+#### On macOS / Linux:
+```bash
+python3 -m venv venv
 source venv/bin/activate
+```
 
-# Install dependencies
+---
+
+### Step 3: Install Dependencies
+```bash
 pip install -r requirements.txt
+```
 
-# Copy environment config
+---
+
+### Step 4: Configure Environment File
+```bash
+# On Windows (PowerShell):
+Copy-Item .env.example .env
+
+# On macOS / Linux:
 cp .env.example .env
+```
+*(No database setup required for local development — the platform has a built-in resilient in-memory mode for offline and local testing).*
 
-# Run FastAPI server
+---
+
+### Step 5: Start the Local Development Server
+```bash
 uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-### 2. Access the Application
+---
 
-- **Web Frontend**: [http://127.0.0.1:8000/app](http://127.0.0.1:8000/app)
-- **Interactive API Docs (Swagger UI)**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- **ReDoc**: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
-- **System Health Check**: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
-
-### 3. Run with Docker Compose
-
-```bash
-docker-compose up -d --build
-```
-
-This starts:
-- PostgreSQL 16 with PostGIS 3.4 on port 5432
-- Redis on port 6379
-- FastAPI backend on port 8000
+### Step 6: Open the Application in Your Browser
+- **🌐 Web App (Frontend)**: [http://127.0.0.1:8000/app](http://127.0.0.1:8000/app)
+- **📖 Interactive API Docs (Swagger)**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- **🔍 Health Check**: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
 
 ---
 
-## 🧪 Running Tests
-
+## 🧪 Running Automated Tests
+To run the automated test suite (11 unit tests covering agronomy calculations, GeoJSON polygons, and pest engines):
 ```bash
-pytest
+pytest tests/ -v
 ```
 
-All 11 unit tests cover:
-- Agronomy calculation with STCR adjustments
-- Weather hold-off safety rules
-- Drone orthomosaic patch classification
-- CIBRC pest thresholds & DGCA drone spray parameter generation
-- GeoJSON boundary polygon validation and area calculations
-- Soil Health Card nearest-neighbor fallback
-# AgriAssist
-this an application for farmers assistance with modern technology
- 3e4816d85e1bc932d2199ea6ccc0fca6a3e6540a
+---
+
+## 🐳 Optional: Run with Docker Compose
+If you prefer running with PostgreSQL + PostGIS via Docker:
+```bash
+docker-compose up -d --build
+```
+This starts:
+- **FastAPI Backend + Frontend**: `http://localhost:8000/app`
+- **PostgreSQL 16 + PostGIS 3.4**: `localhost:5432`
+- **Redis Cache**: `localhost:6379`
+
+---
+
+## 📁 Project Architecture
+
+```
+AgriAssist/
+├── app/
+│   ├── main.py                     # FastAPI entrypoint & static frontend mount (/app)
+│   ├── core/                       # Settings, security & logging
+│   ├── db/                         # PostgreSQL session & base models
+│   ├── models/                     # SQLAlchemy PostGIS & relational tables
+│   ├── schemas/                    # Pydantic v2 schemas (plots, crops, drones, pest)
+│   ├── services/
+│   │   ├── agronomy_engine.py      # ICAR STCR fertilizer calculation (9 crops)
+│   │   ├── gee_service.py          # Sentinel-2 NDVI & 60-day timeseries
+│   │   ├── weather_service.py      # Open-Meteo 7-day live weather & rain alerts
+│   │   ├── soil_service.py         # Soil Health Card benchmarks & fallbacks
+│   │   ├── localization_service.py # 4-language advisory generator (EN/HI/PA/MR)
+│   │   ├── drone_service.py        # Drone orthomosaic patch classification
+│   │   └── pest_control_engine.py  # CIBRC IPM & DGCA drone spray parameters
+│   └── api/v1/endpoints/           # Auth, plots, drone, pest, soil endpoints
+├── static/                         # Single Page Application (Vanilla JS / HTML5)
+│   ├── index.html                  # Full responsive dashboard & map modal
+│   ├── css/app.css                 # Modern CSS design tokens & layouts
+│   └── js/
+│       ├── app.js                  # App state, batch staging & advisory renderers
+│       ├── map.js                  # Leaflet.js + Google Maps satellite tile CDN
+│       └── api.js                  # REST API client
+├── tests/                          # 11 unit & integration pytest tests
+├── requirements.txt                # Python dependencies
+├── docker-compose.yml              # Multi-container setup
+└── README.md                       # Documentation & setup guide
+```
+
+---
+
+## 🤝 Troubleshooting & Access for Team Members
+
+- **"Repository not found" or "Permission denied" when cloning**:
+  - If your repository is **Private**, your team members must be invited as collaborators:
+    1. Go to repository **Settings** on GitHub (`https://github.com/waffleslately/AgriAssist/settings/access`).
+    2. Click **Collaborators** -> **Add people**.
+    3. Enter their GitHub username or email address and click **Add**.
+    4. They must accept the email invitation to clone and push code.
+- **Port 8000 already in use**:
+  - Run with another port: `uvicorn app.main:app --port 8080 --reload`
+- **Satellite Map Not Loading**:
+  - Leaflet fetches satellite tiles directly from Google Maps CDN (`mt0-mt3.google.com`). Ensure you have an active internet connection.
