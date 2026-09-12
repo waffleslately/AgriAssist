@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 from datetime import date, timedelta
 from typing import Dict, Any, List
 import random
@@ -109,5 +109,43 @@ class GEEService:
             "cloud_cover_percentage": round(cloud, 1),
             "is_simulated": True
         }
+
+    async def get_ndvi_timeseries(
+        self,
+        coordinates: List[List[float]],
+        days: int = 60
+    ) -> List[Dict[str, Any]]:
+        """
+        Return a 60-day NDVI timeseries (one point per ~10 days) as a list of
+        {"date": "YYYY-MM-DD", "ndvi": float} dicts.
+        Uses deterministic sigmoidal crop-growth simulation in dev mode.
+        """
+        target_date = date.today()
+        centroid_lng = sum(p[0] for p in coordinates) / len(coordinates)
+        centroid_lat = sum(p[1] for p in coordinates) / len(coordinates)
+        seed = int((centroid_lat + centroid_lng) * 1000) + target_date.day
+        rnd = random.Random(seed)
+
+        # Simulate a realistic crop growth curve (sigmoid) over 60 days
+        peak_ndvi = rnd.uniform(0.62, 0.82)
+        mid_das = rnd.randint(28, 45)   # inflection point of sigmoid
+        k_rate = rnd.uniform(0.07, 0.12) # growth steepness
+        baseline = rnd.uniform(0.18, 0.28)
+
+        result = []
+        # 6 observations at roughly 10-day intervals going back 60 days
+        intervals = list(range(days, -1, -(days // 6)))[:7]
+        for days_back in reversed(intervals):
+            obs_date = target_date - timedelta(days=days_back)
+            das = days - days_back   # approximate day after sowing
+            import math as _math
+            sigmoid = 1 / (1 + _math.exp(-k_rate * (das - mid_das)))
+            ndvi = baseline + (peak_ndvi - baseline) * sigmoid
+            noise = rnd.uniform(-0.015, 0.015)
+            result.append({
+                "date": obs_date.isoformat(),
+                "ndvi": round(max(0.05, ndvi + noise), 3)
+            })
+        return result
 
 gee_service = GEEService()

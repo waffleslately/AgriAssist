@@ -1,4 +1,4 @@
-﻿from datetime import date
+from datetime import date
 from typing import Dict, Any, List
 import math
 
@@ -54,6 +54,14 @@ class AgronomyEngine:
             if st["min_das"] <= das <= st["max_das"]:
                 current_stage = st
                 break
+        
+        # If DAS is past all defined stages (crop beyond known range), use last applicable 
+        # non-zero nitrogen stage for a final top-dress advisory
+        if das > stages[-1]["max_das"]:
+            # Find last stage with any nutrient split defined
+            applicable = [s for s in stages if s["n_pct"] > 0 or s["p_pct"] > 0 or s["k_pct"] > 0]
+            if applicable:
+                current_stage = applicable[-1]
 
         # 4. Check Weather Guard
         heavy_rain = weather_metrics.get("heavy_rain_warning", False)

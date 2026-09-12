@@ -316,3 +316,123 @@ body { font-family: var(--font); background: var(--gray-100); color: var(--gray-
 .btn-search:hover {
   background: #15803d;
 }
+
+/* ===== MY FARMS DASHBOARD ===== */
+.my-farms-section {
+  background: #fff;
+  border-top: 3px solid #16a34a;
+  padding: 14px 16px 12px;
+  position: relative;
+}
+.my-farms-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.my-farms-title { font-size: 13px; font-weight: 700; color: #14532d; }
+.my-farms-sub { font-size: 10.5px; color: #64748b; margin-top: 1px; }
+.mf-plot-badge {
+  background: #dcfce7;
+  color: #16a34a;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid #bbf7d0;
+}
+.my-farms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.mf-empty {
+  font-size: 11px;
+  color: #94a3b8;
+  text-align: center;
+  padding: 14px 0;
+  line-height: 1.6;
+}
+.mf-plot-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.mf-plot-card:hover {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+.mf-ndvi-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.mf-plot-info { flex: 1; min-width: 0; }
+.mf-plot-name { font-size: 12px; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mf-plot-meta { font-size: 10px; color: #64748b; margin-top: 1px; }
+.mf-plot-ndvi { font-size: 11px; font-weight: 700; }
+.my-farms-legend {
+  display: flex;
+  align-items: center;
+  font-size: 9.5px;
+  color: #94a3b8;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid #f1f5f9;
+}
+.mf-legend-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 3px;
+}
+
+/* ===== NDVI TIMESERIES CHART ===== */
+.ndvi-chart-wrap {
+  margin-top: 10px;
+  background: #f8fafc;
+  border-radius: 7px;
+  padding: 8px 8px 4px;
+  border: 1px solid #e2e8f0;
+}
+.ndvi-chart-label {
+  font-size: 9.5px;
+  color: #64748b;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+/* ===== WEATHER 7-DAY STRIP ===== */
+.wx-strip-wrap {
+  margin-top: 8px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 8px;
+}
+.wx-strip-label {
+  font-size: 10px;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+.wx-day-col {
+  flex: 1;
+  text-align: center;
+  font-size: 9.5px;
+  padding: 4px 2px;
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+  .app-header, .panel-left, .map-panel, .my-farms-section { display: none !important; }
+  .panel-right { width: 100% !important; position: static !important; overflow: visible !important; }
+  .result-card { page-break-inside: avoid; }
+}

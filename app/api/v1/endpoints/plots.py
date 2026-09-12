@@ -1,4 +1,4 @@
-﻿import uuid
+import uuid
 import math
 from datetime import date
 from typing import List, Dict, Any
@@ -141,11 +141,12 @@ async def onboard_plot_pipeline(
             soil_data["organic_carbon_pct"] = float(payload.manual_soil_oc)
         soil_data["source"] = "Farmer Ground Test (Manual Input)"
 
-    # 5. Fetch Satellite Metrics (GEE Sentinel-2)
+    # 5. Fetch Satellite Metrics (GEE Sentinel-2) + 60-day NDVI Timeseries
     sat_data = await gee_service.get_plot_metrics(
         coordinates=coords,
         target_date=date.today()
     )
+    ndvi_timeseries = await gee_service.get_ndvi_timeseries(coordinates=coords, days=60)
 
     # 6. Fetch Weather Forecast (Open-Meteo)
     weather_data = await weather_service.get_forecast(latitude=lat, longitude=lng)
@@ -235,13 +236,20 @@ async def onboard_plot_pipeline(
             "days_after_sowing": plan["days_after_sowing"]
         },
         "soil_profile": soil_data,
-        "satellite": sat_data,
+        "satellite": {
+            **sat_data,
+            "ndvi_timeseries": ndvi_timeseries
+        },
         "weather": {
             "max_temp": weather_data.get("max_temp"),
             "min_temp": weather_data.get("min_temp"),
             "precipitation_48h_mm": weather_data.get("precipitation_48h_mm"),
             "heavy_rain_warning": weather_data.get("heavy_rain_warning"),
-            "source": weather_data.get("source", "Open-Meteo Live API")
+            "source": weather_data.get("source", "Open-Meteo Live API"),
+            "forecast_dates": weather_data.get("dates", [])[:7],
+            "forecast_precip_mm": weather_data.get("raw_daily", {}).get("precipitation_sum", [])[:7],
+            "forecast_max_temp": weather_data.get("raw_daily", {}).get("temperature_2m_max", [])[:7],
+            "forecast_min_temp": weather_data.get("raw_daily", {}).get("temperature_2m_min", [])[:7]
         },
         "recommendation": {
             "fertilizer_schedule": plan["fertilizer_schedule"],

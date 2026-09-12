@@ -119,13 +119,17 @@
       <div class="form-grid">
         <div class="form-group">
           <label>Crop Name</label>
-          <select id="crop-name">
-            <option value="wheat">Wheat (गेंहू)</option>
+          <select id="crop-name" class="form-select">
+              <option value="wheat">Wheat (गेंहू)</option>
             <option value="paddy">Paddy / Rice (धान)</option>
             <option value="cotton">Cotton (कपास)</option>
             <option value="maize">Maize (मक्का)</option>
             <option value="soybean">Soybean (सोयाबीन)</option>
-          </select>
+            <option value="mustard">Mustard (सरसों)</option>
+            <option value="sugarcane">Sugarcane (गन्ना)</option>
+            <option value="gram">Gram / Chickpea (चना)</option>
+            <option value="sunflower">Sunflower (सूरजमुखी)</option>
+            </select>
         </div>
         <div class="form-group">
           <label>Variety</label>
@@ -276,11 +280,16 @@
         </div>
         <div class="form-group">
           <label>Surveyed Crop</label>
-          <select id="drone-crop">
-            <option value="wheat">Wheat</option>
-            <option value="cotton">Cotton</option>
-            <option value="paddy">Paddy</option>
-            <option value="maize">Maize</option>
+          <select id="drone-crop" class="form-select">
+            <option value="wheat">Wheat (गेंहू)</option>
+            <option value="paddy">Paddy / Rice (धान)</option>
+            <option value="cotton">Cotton (कपास)</option>
+            <option value="maize">Maize (मक्का)</option>
+            <option value="soybean">Soybean (सोयाबीन)</option>
+            <option value="mustard">Mustard (सरसों)</option>
+            <option value="sugarcane">Sugarcane (गन्ना)</option>
+            <option value="gram">Gram / Chickpea (चना)</option>
+            <option value="sunflower">Sunflower (सूरजमुखी)</option>
           </select>
         </div>
       </div>
@@ -310,11 +319,16 @@
       <div class="form-grid">
         <div class="form-group full-width">
           <label>Crop</label>
-          <select id="pest-crop">
+          <select id="pest-crop" class="form-select">
+            <option value="wheat">Wheat (गेंहू)</option>
+            <option value="paddy">Paddy / Rice (धान)</option>
             <option value="cotton">Cotton (कपास)</option>
             <option value="maize">Maize (मक्का)</option>
-            <option value="paddy">Paddy / Rice (धान)</option>
-            <option value="wheat">Wheat (गेंहू)</option>
+            <option value="soybean">Soybean (सोयाबीन)</option>
+            <option value="mustard">Mustard (सरसों)</option>
+            <option value="sugarcane">Sugarcane (गन्ना)</option>
+            <option value="gram">Gram / Chickpea (चना)</option>
+            <option value="sunflower">Sunflower (सूरजमुखी)</option>
           </select>
         </div>
         <div class="form-group full-width">
@@ -375,6 +389,28 @@
     <div class="results-content" id="results-content" style="display:none"></div>
   </aside>
 
+
+<!-- ====== MY FARMS DASHBOARD SECTION ====== -->
+<section class="my-farms-section" id="my-farms-section">
+  <div class="my-farms-header">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:16px">🌾</span>
+      <div>
+        <div class="my-farms-title" id="mf-farmer-name">My Farms Dashboard</div>
+        <div class="my-farms-sub" id="mf-farmer-loc">Loading farmer profile...</div>
+      </div>
+    </div>
+    <div id="mf-plot-count" class="mf-plot-badge">0 Plots</div>
+  </div>
+  <div id="my-farms-list" class="my-farms-list">
+    <div class="mf-empty">No plots saved yet.<br>Complete Plot Onboarding to save your first field.</div>
+  </div>
+  <div class="my-farms-legend">
+    <span class="mf-legend-dot" style="background:#22c55e"></span> Healthy
+    <span class="mf-legend-dot" style="background:#f59e0b;margin-left:8px"></span> Moderate
+    <span class="mf-legend-dot" style="background:#ef4444;margin-left:8px"></span> Stressed
+  </div>
+</section>
 </main>
 
 <!-- ========== FARMER AUTHENTICATION & OTP MODAL ========== -->

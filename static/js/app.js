@@ -35,6 +35,65 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadSamplePunjabField();
 });
 
+
+// ===== MY FARMS DASHBOARD RENDERER =====
+
+function renderMyFarms(farmer) {
+  const listEl = document.getElementById('my-farms-list');
+  const countEl = document.getElementById('mf-plot-count');
+  const nameEl = document.getElementById('mf-farmer-name');
+  const locEl = document.getElementById('mf-farmer-loc');
+  if (!listEl) return;
+
+  if (nameEl) nameEl.textContent = farmer.name || 'Farmer Dashboard';
+  if (locEl) locEl.textContent = [farmer.state, farmer.district, farmer.village].filter(Boolean).join(' · ');
+
+  const plots = farmer.plots || [];
+  if (countEl) countEl.textContent = plots.length + ' Plot' + (plots.length !== 1 ? 's' : '');
+
+  if (!plots.length) {
+    listEl.innerHTML = '<div class="mf-empty">No plots saved yet.<br>Complete Plot Onboarding to save your first field.</div>';
+    return;
+  }
+
+  listEl.innerHTML = plots.map((p, idx) => {
+    const ndvi = p.mean_ndvi || 0.55;
+    const dotColor = ndvi < 0.38 ? '#ef4444' : ndvi < 0.55 ? '#f59e0b' : '#22c55e';
+    const ndviLabel = ndvi < 0.38 ? 'Stressed' : ndvi < 0.55 ? 'Moderate' : 'Healthy';
+    const stageLabel = p.stage || '';
+    return `
+      <div class="mf-plot-card" onclick="loadPlotFromFarms(${idx})" title="Click to load this plot">
+        <div class="mf-ndvi-dot" style="background:${dotColor}"></div>
+        <div class="mf-plot-info">
+          <div class="mf-plot-name">${p.plot_name}</div>
+          <div class="mf-plot-meta">${p.crop_name.toUpperCase()} · ${p.area_acres} ac · ${stageLabel}</div>
+        </div>
+        <div class="mf-plot-ndvi" style="color:${dotColor}">${ndvi.toFixed(2)}<br><span style="font-size:8.5px;font-weight:400">${ndviLabel}</span></div>
+      </div>`;
+  }).join('');
+}
+
+window.loadPlotFromFarms = function(idx) {
+  if (!currentFarmer.plots || !currentFarmer.plots[idx]) return;
+  const p = currentFarmer.plots[idx];
+  const cropSel = document.getElementById('crop-name');
+  if (cropSel) cropSel.value = p.crop_name || 'wheat';
+  if (p.sowing_date) {
+    const d = document.getElementById('sowing-date');
+    if (d) d.value = p.sowing_date;
+  }
+  if (p.centroid && window.map) {
+    window.map.setView([p.centroid.lat, p.centroid.lng], 15);
+  }
+  // Switch to Plot Onboarding tab
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  const t = document.querySelector('[data-tab="plots"]');
+  if (t) t.classList.add('active');
+  const tc = document.getElementById('tab-plots');
+  if (tc) tc.classList.add('active');
+};
+
 // ===== FARMER SESSION & PROFILES =====
 
 async function loadFarmerSession(phone) {
@@ -56,6 +115,7 @@ async function loadFarmerSession(phone) {
   if (currentFarmer.district) document.getElementById('district').value = currentFarmer.district;
   if (currentFarmer.village) document.getElementById('village').value = currentFarmer.village;
 
+  renderMyFarms(currentFarmer);
   const select = document.getElementById('saved-plots-select');
   select.innerHTML = '<option value="">-- Select Saved Plot --</option>';
   if (currentFarmer.plots && currentFarmer.plots.length > 0) {
@@ -306,6 +366,111 @@ window.triggerPestDiagnosis = async function() {
   }
 };
 
+
+// ===== NDVI TIMESERIES SVG CHART BUILDER =====
+
+function buildNdviChart(timeseries) {
+  if (!timeseries || timeseries.length < 2) return '';
+  const W = 300, H = 80, PAD = { t: 8, r: 10, b: 22, l: 32 };
+  const innerW = W - PAD.l - PAD.r;
+  const innerH = H - PAD.t - PAD.b;
+  const ndvis = timeseries.map(d => d.ndvi);
+  const dates = timeseries.map(d => d.date);
+  const minN = Math.min(...ndvis), maxN = Math.max(...ndvis);
+  const range = maxN - minN || 0.1;
+  const xStep = innerW / (timeseries.length - 1);
+  const toX = i => PAD.l + i * xStep;
+  const toY = v => PAD.t + innerH - ((v - minN) / range) * innerH;
+
+  // Build polyline points
+  const points = timeseries.map((d, i) => `${toX(i)},${toY(d.ndvi)}`).join(' ');
+  // Fill area polygon (close back to bottom)
+  const fillPoly = timeseries.map((d, i) => `${toX(i)},${toY(d.ndvi)}`).join(' ')
+    + ` ${toX(timeseries.length-1)},${PAD.t + innerH} ${toX(0)},${PAD.t + innerH}`;
+
+  // X-axis date labels (show first and last)
+  const firstDate = dates[0] ? dates[0].slice(5) : '';
+  const lastDate = dates[dates.length-1] ? dates[dates.length-1].slice(5) : '';
+
+  // Dot elements for each data point
+  const dots = timeseries.map((d, i) => {
+    const x = toX(i), y = toY(d.ndvi);
+    const color = d.ndvi < 0.38 ? '#ef4444' : d.ndvi < 0.55 ? '#f59e0b' : '#22c55e';
+    return `<circle cx="${x}" cy="${y}" r="3" fill="${color}" stroke="white" stroke-width="1">
+      <title>${d.date}: NDVI ${d.ndvi}</title>
+    </circle>`;
+  }).join('');
+
+  // Y-axis labels
+  const yLabels = [minN, (minN+maxN)/2, maxN].map((v, i) => {
+    const y = toY(v);
+    return `<text x="${PAD.l - 4}" y="${y + 3}" font-size="7" text-anchor="end" fill="#94a3b8">${v.toFixed(2)}</text>`;
+  }).join('');
+
+  return `
+  <div style="margin-top:10px">
+    <div style="font-size:10px;color:#64748b;margin-bottom:4px">📈 60-Day NDVI Trend (Sentinel-2)</div>
+    <svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">
+      <defs>
+        <linearGradient id="ndviGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#22c55e" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="#22c55e" stop-opacity="0.03"/>
+        </linearGradient>
+      </defs>
+      <!-- Grid lines -->
+      <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+innerH}" stroke="#e2e8f0" stroke-width="1"/>
+      <line x1="${PAD.l}" y1="${PAD.t+innerH}" x2="${PAD.l+innerW}" y2="${PAD.t+innerH}" stroke="#e2e8f0" stroke-width="1"/>
+      <line x1="${PAD.l}" y1="${PAD.t+innerH/2}" x2="${PAD.l+innerW}" y2="${PAD.t+innerH/2}" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="3,2"/>
+      <!-- Fill area -->
+      <polygon points="${fillPoly}" fill="url(#ndviGrad)"/>
+      <!-- Line -->
+      <polyline points="${points}" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+      <!-- Dots -->
+      ${dots}
+      <!-- Y labels -->
+      ${yLabels}
+      <!-- X labels -->
+      <text x="${PAD.l}" y="${H - 2}" font-size="7" fill="#94a3b8">${firstDate}</text>
+      <text x="${PAD.l+innerW}" y="${H - 2}" font-size="7" text-anchor="end" fill="#94a3b8">${lastDate}</text>
+    </svg>
+  </div>`;
+}
+
+// ===== 7-DAY WEATHER FORECAST STRIP BUILDER =====
+
+function buildWeatherStrip(wx) {
+  const dates = wx.forecast_dates || [];
+  const precip = wx.forecast_precip_mm || [];
+  const maxT = wx.forecast_max_temp || [];
+  const minT = wx.forecast_min_temp || [];
+  if (!dates.length) return '';
+
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const cols = dates.slice(0, 7).map((d, i) => {
+    const dt = new Date(d);
+    const day = dayNames[dt.getDay()];
+    const rain = (precip[i] || 0).toFixed(1);
+    const hi = (maxT[i] || '--');
+    const lo = (minT[i] || '--');
+    const isRainy = (precip[i] || 0) > 5;
+    const icon = isRainy ? '🌧️' : (precip[i] > 1 ? '🌦️' : '☀️');
+    const rainColor = isRainy ? '#3b82f6' : '#94a3b8';
+    return `<div style="flex:1;text-align:center;font-size:9.5px;padding:4px 2px">
+      <div style="color:#64748b;font-weight:600">${day}</div>
+      <div style="font-size:13px;margin:2px 0">${icon}</div>
+      <div style="color:#1e293b;font-weight:600">${typeof hi === 'number' ? Math.round(hi) : hi}°</div>
+      <div style="color:#64748b">${typeof lo === 'number' ? Math.round(lo) : lo}°</div>
+      <div style="color:${rainColor};font-size:8.5px">${rain}mm</div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div style="margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">
+    <div style="font-size:10px;color:#64748b;margin-bottom:6px">📅 7-Day Outlook</div>
+    <div style="display:flex;gap:2px">${cols}</div>
+  </div>`;
+}
+
 // ===== RENDERERS =====
 
 function renderAdvisoryResults(data, lang) {
@@ -401,6 +566,7 @@ function renderAdvisoryResults(data, lang) {
         <span class="status-badge ${ndviClass}">${ndviStatus}</span>
         <span style="font-size:11px;color:#64748b">Moisture Proxy: ${sat.soil_moisture_proxy || '0.38'}</span>
       </div>
+      ${buildNdviChart(sat.ndvi_timeseries)}
     </div>
 
     <div class="result-card">
@@ -452,6 +618,7 @@ function renderAdvisoryResults(data, lang) {
           ${wx.heavy_rain_warning ? '<span class="status-badge status-red" style="margin-left:4px">⚠️ High</span>' : '<span class="status-badge status-green" style="margin-left:4px">✅ Safe</span>'}
         </span>
       </div>
+      ${buildWeatherStrip(wx)}
     </div>
 
     <div class="result-card">
