@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter
+from fastapi import APIRouter
 from app.api.v1.endpoints import (
     auth,
     farmers,
@@ -8,7 +8,9 @@ from app.api.v1.endpoints import (
     soil,
     advisories,
     drone,
-    pest
+    pest,
+    iot,
+    livestock
 )
 
 api_router = APIRouter()
@@ -22,3 +24,5 @@ api_router.include_router(soil.router, prefix="/soil", tags=["Soil Health & Benc
 api_router.include_router(advisories.router, prefix="/advisories", tags=["Advisories & Recommendations"])
 api_router.include_router(drone.router, prefix="/drone", tags=["Drone Surveys & Patch Analytics"])
 api_router.include_router(pest.router, prefix="/pest", tags=["Pest Control & Drone Spraying"])
+api_router.include_router(iot.router, prefix="/iot", tags=["IoT Telemetry & Collar Ingestion"])
+api_router.include_router(livestock.router, prefix="/livestock", tags=["Livestock Tracking & Grazing Analytics"])

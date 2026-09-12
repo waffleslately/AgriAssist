@@ -118,6 +118,10 @@ async function _initAppAfterAuth(detail) {
       btn.classList.add('active');
       const target = document.getElementById('tab-' + tab);
       if (target) target.classList.add('active');
+      if (tab === 'livestock' && window.loadLiveLivestock) {
+        window.loadLiveLivestock();
+        if (window.startLivestockPolling) window.startLivestockPolling();
+      }
     });
   });
 

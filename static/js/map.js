@@ -266,3 +266,196 @@ window.searchMapLocation = async function() {
     alert('Location search failed: ' + e.message);
   }
 };
+
+
+// ===== IOT LIVESTOCK TRACKING & GRAZING HEATMAP =====
+let livestockLayer = L.layerGroup();
+let grazingHeatLayer = null;
+let livestockPollInterval = null;
+let isHeatmapActive = false;
+
+// Initialize layers when map is ready
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof map !== 'undefined' && map) {
+    livestockLayer.addTo(map);
+  }
+});
+
+window.openMapWithLivestock = function() {
+  window.openMapModal();
+  window.loadLiveLivestock();
+  startLivestockPolling();
+};
+
+window.startLivestockPolling = function() {
+  if (livestockPollInterval) clearInterval(livestockPollInterval);
+  livestockPollInterval = setInterval(() => {
+    if (document.getElementById('map-modal-overlay').style.display !== 'none' ||
+        document.getElementById('tab-livestock')?.classList.contains('active')) {
+      window.loadLiveLivestock(false);
+    }
+  }, 4000);
+};
+
+window.loadLiveLivestock = async function(fitBounds = true) {
+  try {
+    const res = await fetch('/api/v1/livestock/live');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || !data.animals) return;
+
+    // Update Tab UI summary metrics
+    const totalCountEl = document.getElementById('ls-total-count');
+    if (totalCountEl) totalCountEl.textContent = `${data.total_animals} Collars`;
+
+    // Render roster list in Left Tab
+    const rosterEl = document.getElementById('livestock-list');
+    if (rosterEl) {
+      rosterEl.innerHTML = data.animals.map(a => {
+        const icon = a.animal_type === 'sheep' ? '🐑' : (a.animal_type === 'buffalo' ? '🐃' : '🐄');
+        const batColor = a.battery_level > 50 ? '#16a34a' : (a.battery_level > 20 ? '#d97706' : '#dc2626');
+        return `
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;font-size:11px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:15px">${icon}</span>
+              <div>
+                <div style="font-weight:700;color:#0f172a">${a.tag_id}</div>
+                <div style="font-size:10px;color:#64748b">${a.status}</div>
+              </div>
+            </div>
+            <div style="text-align:right">
+              <span style="font-weight:600;color:${batColor}">🔋 ${a.battery_level}%</span>
+              <div style="font-size:9.5px;color:#94a3b8">${a.latitude.toFixed(4)}, ${a.longitude.toFixed(4)}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Render markers on map
+    if (typeof map === 'undefined' || !map) return;
+    if (!map.hasLayer(livestockLayer)) livestockLayer.addTo(map);
+    livestockLayer.clearLayers();
+
+    const bounds = [];
+    data.animals.forEach(a => {
+      const emoji = a.animal_type === 'sheep' ? '🐑' : (a.animal_type === 'buffalo' ? '🐃' : '🐄');
+      const customIcon = L.divIcon({
+        className: 'livestock-marker-pin',
+        html: `<div style="background:#ffffff;border:2px solid #16a34a;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);font-size:18px;position:relative">
+                 ${emoji}
+                 <span style="position:absolute;bottom:-14px;background:#0f172a;color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;white-space:nowrap">${a.tag_id}</span>
+               </div>`,
+        iconSize: [34, 34],
+        iconAnchor: [17, 17]
+      });
+
+      const m = L.marker([a.latitude, a.longitude], { icon: customIcon }).addTo(livestockLayer);
+      m.bindPopup(`
+        <div style="font-family:Inter,sans-serif;font-size:12px;min-width:140px">
+          <div style="font-weight:800;font-size:13px;margin-bottom:2px">${emoji} ${a.tag_id} (${a.animal_type})</div>
+          <div style="color:#16a34a;font-weight:600;margin-bottom:4px">● ${a.status}</div>
+          <div style="color:#64748b">Collar Battery: <b>${a.battery_level}%</b></div>
+          <div style="color:#64748b;font-size:10.5px">GPS: ${a.latitude.toFixed(5)}, ${a.longitude.toFixed(5)}</div>
+        </div>
+      `);
+      bounds.push([a.latitude, a.longitude]);
+    });
+
+    if (fitBounds && bounds.length > 0 && map.getBounds && !map.getBounds().contains(bounds[0])) {
+      map.fitBounds(bounds, { padding: [60, 60], maxZoom: 17 });
+    }
+
+    // Also refresh grazing density analytics
+    window.loadGrazingDensityAnalytics();
+
+  } catch (err) {
+    console.warn('[Livestock] Error fetching telemetry:', err);
+  }
+};
+
+window.loadGrazingDensityAnalytics = async function() {
+  try {
+    const res = await fetch('/api/v1/livestock/grazing-density');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || !data.analytics) return;
+
+    const pressureEl = document.getElementById('ls-pressure-score');
+    if (pressureEl) {
+      const score = data.analytics.grazing_pressure_score;
+      pressureEl.textContent = `${score}% (${data.analytics.pasture_status.split(' ')[0]})`;
+      pressureEl.style.color = score > 75 ? '#dc2626' : (score > 40 ? '#d97706' : '#16a34a');
+    }
+
+    const intakeEl = document.getElementById('ls-intake-val');
+    if (intakeEl) {
+      intakeEl.textContent = `Est: ${data.analytics.estimated_daily_intake_kg} kg DM/day`;
+    }
+
+    const restDaysEl = document.getElementById('ls-resting-days');
+    if (restDaysEl) {
+      restDaysEl.textContent = `Rest: ${data.analytics.recommended_resting_days} Days`;
+    }
+
+    const adviceEl = document.getElementById('ls-advice-text');
+    if (adviceEl) {
+      adviceEl.textContent = data.analytics.actionable_advice;
+    }
+
+    // If heatmap layer is active, refresh its points
+    if (isHeatmapActive && typeof L.heatLayer !== 'undefined' && map) {
+      if (grazingHeatLayer) map.removeLayer(grazingHeatLayer);
+      grazingHeatLayer = L.heatLayer(data.heatmap_points, {
+        radius: 35,
+        blur: 20,
+        maxZoom: 17,
+        gradient: { 0.2: '#22c55e', 0.5: '#eab308', 0.8: '#f97316', 1.0: '#ef4444' }
+      }).addTo(map);
+    }
+  } catch (e) {
+    console.warn('[Grazing] Analytics update failed:', e);
+  }
+};
+
+window.toggleGrazingHeatmap = async function() {
+  const btn = document.getElementById('btn-toggle-heat');
+  if (isHeatmapActive) {
+    // Turn off
+    isHeatmapActive = false;
+    if (grazingHeatLayer && map) map.removeLayer(grazingHeatLayer);
+    if (btn) {
+      btn.textContent = '🔥 Show Grazing Heatmap';
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-outline');
+    }
+  } else {
+    // Turn on
+    isHeatmapActive = true;
+    if (btn) {
+      btn.textContent = '✖ Hide Grazing Heatmap';
+      btn.classList.remove('btn-outline');
+      btn.classList.add('btn-primary');
+    }
+    // Make sure map modal is open so farmer sees the heatmap
+    if (document.getElementById('map-modal-overlay').style.display === 'none') {
+      window.openMapModal();
+    }
+    await window.loadGrazingDensityAnalytics();
+  }
+};
+
+window.triggerSimulateStep = async function() {
+  try {
+    const res = await fetch('/api/v1/iot/simulate-step', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ center_lat: 30.9025, center_lng: 75.8525, herd_size: 5 })
+    });
+    if (res.ok) {
+      await window.loadLiveLivestock(false);
+    }
+  } catch (e) {
+    console.error('Simulation step error:', e);
+  }
+};
