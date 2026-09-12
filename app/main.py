@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.core.logging import setup_logging, logger
 from app.db.init_db import init_db
 from app.api.v1.api import api_router
+from app.api.v1.endpoints import soil_reports
 
 setup_logging()
 
@@ -69,3 +70,5 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # Mount API V1 router
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(soil_reports.router, prefix="/soil-reports", tags=["Soil Reports & Recommender"])
+

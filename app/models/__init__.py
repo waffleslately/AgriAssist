@@ -7,6 +7,7 @@ from app.models.advisory import Advisory
 from app.models.drone import DroneSurvey, PlotPatch, DroneScan
 from app.models.pest_control import PestDetectionReport
 from app.models.livestock import Livestock, LivestockLocation
+from app.models.soil_report import UserSoilReport
 
 __all__ = [
     "Farmer",
@@ -20,5 +21,6 @@ __all__ = [
     "DroneScan",
     "PestDetectionReport",
     "Livestock",
-    "LivestockLocation"
+    "LivestockLocation",
+    "UserSoilReport"
 ]

@@ -1,0 +1,310 @@
+"""
+Crop Reference Ranges from the Atharva Ingle Crop Recommendation Dataset (Kaggle).
+Covers 22 crops with 100 rows per crop (2,200 rows total):
+N (kg/ha), P (kg/ha), K (kg/ha), temperature (°C), humidity (%), pH, rainfall (mm).
+"""
+
+from typing import Dict, Any
+
+CROP_REFERENCE_RANGES: Dict[str, Dict[str, Any]] = {
+    "rice": {
+        "crop_name": "rice",
+        "display_name": "Rice / Paddy (धान)",
+        "season": "kharif",
+        "n": {"min": 60, "max": 99, "mean": 79.9, "std": 11.5},
+        "p": {"min": 35, "max": 60, "mean": 47.6, "std": 7.3},
+        "k": {"min": 35, "max": 45, "mean": 39.9, "std": 2.9},
+        "temperature": {"min": 20.0, "max": 27.5, "mean": 23.7},
+        "humidity": {"min": 80.0, "max": 85.0, "mean": 82.3},
+        "ph": {"min": 5.0, "max": 7.8, "mean": 6.4},
+        "rainfall": {"min": 180.0, "max": 300.0, "mean": 236.2}
+    },
+    "maize": {
+        "crop_name": "maize",
+        "display_name": "Maize (मक्का)",
+        "season": "kharif",
+        "n": {"min": 60, "max": 100, "mean": 77.8, "std": 11.8},
+        "p": {"min": 35, "max": 60, "mean": 48.4, "std": 7.3},
+        "k": {"min": 15, "max": 25, "mean": 19.8, "std": 3.2},
+        "temperature": {"min": 18.0, "max": 30.0, "mean": 22.4},
+        "humidity": {"min": 55.0, "max": 75.0, "mean": 65.1},
+        "ph": {"min": 5.5, "max": 7.5, "mean": 6.2},
+        "rainfall": {"min": 60.0, "max": 110.0, "mean": 84.8}
+    },
+    "chickpea": {
+        "crop_name": "chickpea",
+        "display_name": "Chickpea / Gram (चना)",
+        "season": "rabi",
+        "n": {"min": 20, "max": 60, "mean": 40.1, "std": 11.9},
+        "p": {"min": 55, "max": 80, "mean": 67.7, "std": 7.3},
+        "k": {"min": 75, "max": 85, "mean": 79.9, "std": 3.2},
+        "temperature": {"min": 17.0, "max": 21.0, "mean": 18.9},
+        "humidity": {"min": 14.0, "max": 20.0, "mean": 16.9},
+        "ph": {"min": 6.0, "max": 8.8, "mean": 7.3},
+        "rainfall": {"min": 65.0, "max": 95.0, "mean": 80.1}
+    },
+    "kidneybeans": {
+        "crop_name": "kidneybeans",
+        "display_name": "Kidney Beans / Rajma (राजमा)",
+        "season": "rabi",
+        "n": {"min": 10, "max": 40, "mean": 20.8, "std": 8.7},
+        "p": {"min": 55, "max": 80, "mean": 67.5, "std": 7.5},
+        "k": {"min": 15, "max": 25, "mean": 20.1, "std": 3.1},
+        "temperature": {"min": 15.0, "max": 25.0, "mean": 20.1},
+        "humidity": {"min": 18.0, "max": 25.0, "mean": 21.6},
+        "ph": {"min": 5.5, "max": 6.0, "mean": 5.7},
+        "rainfall": {"min": 60.0, "max": 150.0, "mean": 105.9}
+    },
+    "pigeonpeas": {
+        "crop_name": "pigeonpeas",
+        "display_name": "Pigeon Peas / Arhar (अरहर)",
+        "season": "kharif",
+        "n": {"min": 10, "max": 40, "mean": 20.7, "std": 8.5},
+        "p": {"min": 55, "max": 80, "mean": 67.7, "std": 7.2},
+        "k": {"min": 15, "max": 25, "mean": 20.3, "std": 3.2},
+        "temperature": {"min": 18.0, "max": 38.0, "mean": 27.7},
+        "humidity": {"min": 30.0, "max": 70.0, "mean": 48.1},
+        "ph": {"min": 4.5, "max": 7.5, "mean": 5.8},
+        "rainfall": {"min": 90.0, "max": 200.0, "mean": 149.4}
+    },
+    "mothbeans": {
+        "crop_name": "mothbeans",
+        "display_name": "Moth Beans (मोठ दाल)",
+        "season": "kharif",
+        "n": {"min": 10, "max": 40, "mean": 21.4, "std": 8.6},
+        "p": {"min": 35, "max": 60, "mean": 48.0, "std": 7.3},
+        "k": {"min": 15, "max": 25, "mean": 20.2, "std": 3.1},
+        "temperature": {"min": 24.0, "max": 32.0, "mean": 28.2},
+        "humidity": {"min": 40.0, "max": 70.0, "mean": 53.2},
+        "ph": {"min": 3.5, "max": 9.9, "mean": 6.8},
+        "rainfall": {"min": 30.0, "max": 75.0, "mean": 51.2}
+    },
+    "mungbean": {
+        "crop_name": "mungbean",
+        "display_name": "Mung Bean (मूंग)",
+        "season": "kharif",
+        "n": {"min": 10, "max": 40, "mean": 21.0, "std": 8.7},
+        "p": {"min": 35, "max": 60, "mean": 47.3, "std": 7.1},
+        "k": {"min": 15, "max": 25, "mean": 20.1, "std": 3.0},
+        "temperature": {"min": 27.0, "max": 30.0, "mean": 28.5},
+        "humidity": {"min": 80.0, "max": 90.0, "mean": 85.5},
+        "ph": {"min": 6.2, "max": 7.2, "mean": 6.7},
+        "rainfall": {"min": 35.0, "max": 60.0, "mean": 48.4}
+    },
+    "blackgram": {
+        "crop_name": "blackgram",
+        "display_name": "Black Gram / Urad (उड़द)",
+        "season": "kharif",
+        "n": {"min": 20, "max": 60, "mean": 40.1, "std": 11.7},
+        "p": {"min": 55, "max": 80, "mean": 67.5, "std": 7.4},
+        "k": {"min": 15, "max": 25, "mean": 19.2, "std": 3.0},
+        "temperature": {"min": 25.0, "max": 35.0, "mean": 29.9},
+        "humidity": {"min": 60.0, "max": 70.0, "mean": 65.0},
+        "ph": {"min": 6.5, "max": 7.8, "mean": 7.1},
+        "rainfall": {"min": 60.0, "max": 75.0, "mean": 67.9}
+    },
+    "lentil": {
+        "crop_name": "lentil",
+        "display_name": "Lentil / Masoor (मसूर)",
+        "season": "rabi",
+        "n": {"min": 10, "max": 40, "mean": 18.8, "std": 8.4},
+        "p": {"min": 55, "max": 80, "mean": 68.4, "std": 7.4},
+        "k": {"min": 15, "max": 25, "mean": 19.4, "std": 3.2},
+        "temperature": {"min": 18.0, "max": 30.0, "mean": 24.5},
+        "humidity": {"min": 60.0, "max": 70.0, "mean": 64.8},
+        "ph": {"min": 5.9, "max": 7.8, "mean": 6.9},
+        "rainfall": {"min": 35.0, "max": 55.0, "mean": 45.7}
+    },
+    "pomegranate": {
+        "crop_name": "pomegranate",
+        "display_name": "Pomegranate (अनार)",
+        "season": "annual",
+        "n": {"min": 10, "max": 40, "mean": 18.9, "std": 8.7},
+        "p": {"min": 10, "max": 30, "mean": 18.8, "std": 5.9},
+        "k": {"min": 35, "max": 45, "mean": 40.2, "std": 3.0},
+        "temperature": {"min": 18.0, "max": 25.0, "mean": 21.8},
+        "humidity": {"min": 85.0, "max": 95.0, "mean": 90.1},
+        "ph": {"min": 5.5, "max": 7.2, "mean": 6.4},
+        "rainfall": {"min": 100.0, "max": 115.0, "mean": 107.5}
+    },
+    "banana": {
+        "crop_name": "banana",
+        "display_name": "Banana (केला)",
+        "season": "annual",
+        "n": {"min": 80, "max": 120, "mean": 100.2, "std": 11.6},
+        "p": {"min": 70, "max": 95, "mean": 82.0, "std": 7.4},
+        "k": {"min": 45, "max": 55, "mean": 50.1, "std": 3.2},
+        "temperature": {"min": 25.0, "max": 30.0, "mean": 27.4},
+        "humidity": {"min": 75.0, "max": 85.0, "mean": 80.4},
+        "ph": {"min": 5.5, "max": 6.5, "mean": 6.0},
+        "rainfall": {"min": 90.0, "max": 120.0, "mean": 104.6}
+    },
+    "mango": {
+        "crop_name": "mango",
+        "display_name": "Mango (आम)",
+        "season": "annual",
+        "n": {"min": 10, "max": 40, "mean": 20.1, "std": 8.6},
+        "p": {"min": 15, "max": 40, "mean": 27.2, "std": 7.1},
+        "k": {"min": 25, "max": 35, "mean": 29.9, "std": 3.1},
+        "temperature": {"min": 27.0, "max": 36.0, "mean": 31.2},
+        "humidity": {"min": 45.0, "max": 55.0, "mean": 50.2},
+        "ph": {"min": 4.5, "max": 7.0, "mean": 5.8},
+        "rainfall": {"min": 85.0, "max": 105.0, "mean": 94.7}
+    },
+    "grapes": {
+        "crop_name": "grapes",
+        "display_name": "Grapes (अंगूर)",
+        "season": "annual",
+        "n": {"min": 10, "max": 40, "mean": 23.2, "std": 8.7},
+        "p": {"min": 120, "max": 145, "mean": 132.5, "std": 7.6},
+        "k": {"min": 195, "max": 205, "mean": 200.1, "std": 3.0},
+        "temperature": {"min": 8.0, "max": 42.0, "mean": 23.8},
+        "humidity": {"min": 80.0, "max": 85.0, "mean": 81.9},
+        "ph": {"min": 5.5, "max": 6.5, "mean": 6.0},
+        "rainfall": {"min": 65.0, "max": 75.0, "mean": 69.6}
+    },
+    "watermelon": {
+        "crop_name": "watermelon",
+        "display_name": "Watermelon (तरबूज)",
+        "season": "zaid",
+        "n": {"min": 80, "max": 120, "mean": 99.4, "std": 11.5},
+        "p": {"min": 10, "max": 30, "mean": 17.0, "std": 5.8},
+        "k": {"min": 45, "max": 55, "mean": 50.2, "std": 3.1},
+        "temperature": {"min": 24.0, "max": 27.0, "mean": 25.6},
+        "humidity": {"min": 80.0, "max": 90.0, "mean": 85.2},
+        "ph": {"min": 6.0, "max": 7.0, "mean": 6.5},
+        "rainfall": {"min": 40.0, "max": 60.0, "mean": 50.8}
+    },
+    "muskmelon": {
+        "crop_name": "muskmelon",
+        "display_name": "Muskmelon (खरबूजा)",
+        "season": "zaid",
+        "n": {"min": 80, "max": 120, "mean": 100.3, "std": 11.5},
+        "p": {"min": 10, "max": 30, "mean": 17.7, "std": 5.6},
+        "k": {"min": 45, "max": 55, "mean": 50.1, "std": 3.1},
+        "temperature": {"min": 27.0, "max": 30.0, "mean": 28.6},
+        "humidity": {"min": 90.0, "max": 95.0, "mean": 92.3},
+        "ph": {"min": 6.0, "max": 6.8, "mean": 6.4},
+        "rainfall": {"min": 20.0, "max": 30.0, "mean": 24.7}
+    },
+    "apple": {
+        "crop_name": "apple",
+        "display_name": "Apple (सेब)",
+        "season": "annual",
+        "n": {"min": 10, "max": 40, "mean": 20.8, "std": 8.7},
+        "p": {"min": 120, "max": 145, "mean": 134.2, "std": 7.4},
+        "k": {"min": 195, "max": 205, "mean": 199.9, "std": 3.1},
+        "temperature": {"min": 21.0, "max": 24.0, "mean": 22.6},
+        "humidity": {"min": 90.0, "max": 95.0, "mean": 92.3},
+        "ph": {"min": 5.5, "max": 6.5, "mean": 5.9},
+        "rainfall": {"min": 100.0, "max": 125.0, "mean": 112.7}
+    },
+    "orange": {
+        "crop_name": "orange",
+        "display_name": "Orange / Citrus (संतरा)",
+        "season": "annual",
+        "n": {"min": 10, "max": 40, "mean": 19.6, "std": 8.5},
+        "p": {"min": 10, "max": 30, "mean": 16.5, "std": 5.7},
+        "k": {"min": 5, "max": 15, "mean": 10.0, "std": 3.2},
+        "temperature": {"min": 10.0, "max": 35.0, "mean": 22.8},
+        "humidity": {"min": 90.0, "max": 95.0, "mean": 92.2},
+        "ph": {"min": 6.0, "max": 8.0, "mean": 7.0},
+        "rainfall": {"min": 100.0, "max": 120.0, "mean": 110.4}
+    },
+    "papaya": {
+        "crop_name": "papaya",
+        "display_name": "Papaya (पपीता)",
+        "season": "annual",
+        "n": {"min": 30, "max": 70, "mean": 49.9, "std": 11.6},
+        "p": {"min": 45, "max": 70, "mean": 59.0, "std": 7.2},
+        "k": {"min": 45, "max": 55, "mean": 50.0, "std": 3.0},
+        "temperature": {"min": 23.0, "max": 44.0, "mean": 33.7},
+        "humidity": {"min": 90.0, "max": 95.0, "mean": 92.4},
+        "ph": {"min": 6.5, "max": 7.0, "mean": 6.7},
+        "rainfall": {"min": 40.0, "max": 250.0, "mean": 142.6}
+    },
+    "coconut": {
+        "crop_name": "coconut",
+        "display_name": "Coconut (नारियल)",
+        "season": "annual",
+        "n": {"min": 10, "max": 40, "mean": 21.9, "std": 8.7},
+        "p": {"min": 10, "max": 30, "mean": 16.9, "std": 5.9},
+        "k": {"min": 25, "max": 35, "mean": 30.6, "std": 3.0},
+        "temperature": {"min": 25.0, "max": 29.0, "mean": 27.4},
+        "humidity": {"min": 90.0, "max": 100.0, "mean": 94.8},
+        "ph": {"min": 5.5, "max": 6.5, "mean": 6.0},
+        "rainfall": {"min": 130.0, "max": 230.0, "mean": 175.7}
+    },
+    "cotton": {
+        "crop_name": "cotton",
+        "display_name": "Cotton (कपास)",
+        "season": "kharif",
+        "n": {"min": 100, "max": 140, "mean": 117.8, "std": 11.7},
+        "p": {"min": 35, "max": 60, "mean": 46.2, "std": 7.2},
+        "k": {"min": 15, "max": 25, "mean": 19.6, "std": 3.0},
+        "temperature": {"min": 22.0, "max": 26.0, "mean": 24.0},
+        "humidity": {"min": 75.0, "max": 85.0, "mean": 79.8},
+        "ph": {"min": 5.8, "max": 8.0, "mean": 6.9},
+        "rainfall": {"min": 60.0, "max": 100.0, "mean": 80.4}
+    },
+    "jute": {
+        "crop_name": "jute",
+        "display_name": "Jute / Patson (पटसन)",
+        "season": "kharif",
+        "n": {"min": 60, "max": 100, "mean": 78.4, "std": 11.7},
+        "p": {"min": 35, "max": 60, "mean": 46.8, "std": 7.3},
+        "k": {"min": 35, "max": 45, "mean": 39.9, "std": 3.0},
+        "temperature": {"min": 23.0, "max": 26.0, "mean": 25.0},
+        "humidity": {"min": 70.0, "max": 90.0, "mean": 79.6},
+        "ph": {"min": 6.0, "max": 7.5, "mean": 6.7},
+        "rainfall": {"min": 150.0, "max": 200.0, "mean": 174.7}
+    },
+    "coffee": {
+        "crop_name": "coffee",
+        "display_name": "Coffee (कॉफी)",
+        "season": "annual",
+        "n": {"min": 80, "max": 120, "mean": 101.2, "std": 11.6},
+        "p": {"min": 15, "max": 40, "mean": 28.8, "std": 7.4},
+        "k": {"min": 25, "max": 35, "mean": 29.9, "std": 3.0},
+        "temperature": {"min": 23.0, "max": 28.0, "mean": 25.5},
+        "humidity": {"min": 50.0, "max": 70.0, "mean": 58.9},
+        "ph": {"min": 6.0, "max": 7.5, "mean": 6.8},
+        "rainfall": {"min": 115.0, "max": 200.0, "mean": 158.1}
+    },
+    "wheat": {
+        "crop_name": "wheat",
+        "display_name": "Wheat (गेंहू)",
+        "season": "rabi",
+        "n": {"min": 50, "max": 120, "mean": 85.0, "std": 15.0},
+        "p": {"min": 20, "max": 60, "mean": 40.0, "std": 8.0},
+        "k": {"min": 20, "max": 50, "mean": 35.0, "std": 6.0},
+        "temperature": {"min": 12.0, "max": 26.0, "mean": 19.5},
+        "humidity": {"min": 40.0, "max": 70.0, "mean": 55.0},
+        "ph": {"min": 6.0, "max": 7.8, "mean": 6.8},
+        "rainfall": {"min": 40.0, "max": 100.0, "mean": 65.0}
+    },
+    "mustard": {
+        "crop_name": "mustard",
+        "display_name": "Mustard / Rapeseed (सरसों)",
+        "season": "rabi",
+        "n": {"min": 40, "max": 90, "mean": 65.0, "std": 12.0},
+        "p": {"min": 20, "max": 50, "mean": 35.0, "std": 7.0},
+        "k": {"min": 15, "max": 40, "mean": 25.0, "std": 5.0},
+        "temperature": {"min": 10.0, "max": 25.0, "mean": 18.0},
+        "humidity": {"min": 45.0, "max": 75.0, "mean": 60.0},
+        "ph": {"min": 6.0, "max": 7.8, "mean": 6.9},
+        "rainfall": {"min": 25.0, "max": 80.0, "mean": 45.0}
+    },
+    "sugarcane": {
+        "crop_name": "sugarcane",
+        "display_name": "Sugarcane (गन्ना)",
+        "season": "annual",
+        "n": {"min": 80, "max": 160, "mean": 120.0, "std": 20.0},
+        "p": {"min": 40, "max": 80, "mean": 60.0, "std": 10.0},
+        "k": {"min": 40, "max": 90, "mean": 65.0, "std": 12.0},
+        "temperature": {"min": 20.0, "max": 38.0, "mean": 28.0},
+        "humidity": {"min": 60.0, "max": 90.0, "mean": 75.0},
+        "ph": {"min": 6.0, "max": 8.0, "mean": 6.9},
+        "rainfall": {"min": 120.0, "max": 250.0, "mean": 180.0}
+    }
+}

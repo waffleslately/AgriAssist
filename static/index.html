@@ -274,14 +274,58 @@
         </div>
       </div>
 
+      <!-- ── SMART SOIL TEST REPORT INGESTION CARD ── -->
+      <div class="soil-upload-card" id="soil-upload-card">
+        <div class="soil-upload-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:18px">📄</span>
+            <div>
+              <div style="font-weight:700;font-size:13px;color:var(--text, #0f172a)">Smart Soil Test Report Ingestion</div>
+              <div style="font-size:11px;color:var(--text-muted, #64748b)">Upload Soil Health Card (PDF, Scan, Image, CSV/Excel, or Text)</div>
+            </div>
+          </div>
+          <button type="button" class="btn-text-sm" id="soil-toggle-text-btn" onclick="toggleSoilTextInput()" style="font-size:11px;padding:3px 8px;border-radius:4px">
+            ✏️ Paste Text
+          </button>
+        </div>
+
+        <div class="soil-dropzone" id="soil-dropzone" onclick="document.getElementById('soil-file-input').click()">
+          <input type="file" id="soil-file-input" accept=".pdf,.png,.jpg,.jpeg,.csv,.xlsx,.xls,.txt" style="display:none" onchange="handleSoilFileUpload(this.files[0])"/>
+          <div class="soil-dropzone-icon">📥</div>
+          <div class="soil-dropzone-text">
+            <strong>Click to upload</strong> or drag & drop Soil Report here
+          </div>
+          <div class="soil-dropzone-sub">Supports PDF (text & scan OCR), JPG, PNG, CSV, Excel</div>
+        </div>
+
+        <!-- Hidden Text Paste Box -->
+        <div id="soil-text-box" style="display:none;margin-top:8px">
+          <textarea id="soil-raw-text" rows="3" placeholder="e.g. Nitrogen: 190 kg/ha, Phosphorus: 18 kg/ha, Potassium: 130 kg/ha, pH: 7.4, OC: 0.45%..." style="width:100%;font-size:12px;padding:8px;border-radius:6px;border:1px solid #cbd5e1;background:var(--bg-input, #fff);color:var(--text, #0f172a);resize:vertical;"></textarea>
+          <div style="display:flex;justify-content:flex-end;margin-top:6px;gap:6px">
+            <button type="button" class="btn-text-sm" onclick="toggleSoilTextInput()">Cancel</button>
+            <button type="button" class="btn btn-sm btn-primary" onclick="handleSoilTextSubmit()" style="padding:4px 12px;font-size:11.5px">Extract Nutrients</button>
+          </div>
+        </div>
+
+        <!-- Extraction Feedback Banner -->
+        <div id="soil-parse-feedback" class="soil-parse-banner" style="display:none">
+          <span id="soil-parse-icon">⏳</span>
+          <div style="flex:1">
+            <div id="soil-parse-title" style="font-weight:700;font-size:11.5px">Extracting nutrient values...</div>
+            <div id="soil-parse-desc" style="font-size:10.5px;opacity:0.9">Reading report and standardizing units...</div>
+          </div>
+          <div id="soil-parse-badge" class="confidence-badge" style="display:none">100% Match</div>
+        </div>
+      </div>
+
       <!-- ── MANUAL SOIL & WEATHER OVERRIDE SECTION ── -->
       <div class="override-card">
         <div class="override-header" onclick="toggleManualOverrides()">
           <div class="override-title-wrap">
             <span class="override-icon">🛠️</span>
             <div>
-              <div class="override-title">Manual Data Overrides</div>
-              <div class="override-sub">Enter own Soil Test Card or Rain Gauge values</div>
+              <div class="override-title">Soil Nutrient Values & Overrides</div>
+              <div class="override-sub">Extracted from test report or entered manually</div>
             </div>
           </div>
           <label class="toggle-switch" onclick="event.stopPropagation()">
@@ -291,35 +335,102 @@
         </div>
 
         <div class="override-body" id="override-body" style="display:none">
+          <div id="soil-review-notice" style="display:none;font-size:11px;color:#b45309;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:6px 10px;margin-bottom:8px;">
+            ⚠️ <strong>Review Highlighted Fields:</strong> Yellow bordered values were low confidence or missing and filled from regional baselines. Please adjust if needed before proceeding.
+          </div>
           <p class="override-hint">
             Whenever satellite, soil, or weather data is unavailable or outdated, enter your actual laboratory Soil Health Card numbers or rain gauge readings below.
           </p>
           <div class="form-grid">
             <div class="form-group">
-              <label>Avail. Nitrogen (N) kg/ha</label>
+              <label id="lbl-manual-n">Avail. Nitrogen (N) kg/ha</label>
               <input type="number" id="manual-n" placeholder="e.g. 190 (Low <280)" value="190"/>
             </div>
             <div class="form-group">
-              <label>Avail. Phosphorus (P) kg/ha</label>
+              <label id="lbl-manual-p">Avail. Phosphorus (P) kg/ha</label>
               <input type="number" id="manual-p" placeholder="e.g. 18 (Low <23)" value="18"/>
             </div>
             <div class="form-group">
-              <label>Avail. Potassium (K) kg/ha</label>
+              <label id="lbl-manual-k">Avail. Potassium (K) kg/ha</label>
               <input type="number" id="manual-k" placeholder="e.g. 130 (Low <140)" value="130"/>
             </div>
             <div class="form-group">
-              <label>Soil pH (Acidity/Alkalinity)</label>
+              <label id="lbl-manual-ph">Soil pH (Acidity/Alkalinity)</label>
               <input type="number" step="0.1" id="manual-ph" placeholder="e.g. 7.4" value="7.4"/>
             </div>
             <div class="form-group">
-              <label>Organic Carbon (%)</label>
+              <label id="lbl-manual-oc">Organic Carbon (%)</label>
               <input type="number" step="0.05" id="manual-oc" placeholder="e.g. 0.45%" value="0.45"/>
+            </div>
+            <div class="form-group">
+              <label id="lbl-manual-ec">EC (dS/m)</label>
+              <input type="number" step="0.01" id="manual-ec" placeholder="e.g. 0.8" value="0.8"/>
             </div>
             <div class="form-group">
               <label>Local Rain (Next 48h mm)</label>
               <input type="number" id="manual-rain" placeholder="e.g. 0 or 25" value="0"/>
             </div>
           </div>
+
+          <!-- Soil Confirmation & Action Decider -->
+          <div class="soil-actions-card" id="soil-actions-card" style="margin-top:14px;border-top:1px dashed #cbd5e1;padding-top:12px">
+            <div class="soil-actions-title" style="font-weight:700;font-size:12px;margin-bottom:8px;display:flex;align-items:center;gap:6px;color:var(--text, #0f172a)">
+              <span>🌱</span> Choose Next Step for this Soil:
+            </div>
+            <div class="soil-actions-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <!-- Action A: What Can I Grow? -->
+              <div class="soil-action-btn-card" onclick="triggerCropSuggestions()">
+                <div style="font-size:18px;margin-bottom:4px">🌾</div>
+                <div style="font-weight:700;font-size:12px;color:var(--text, #0f172a)">What Can I Grow?</div>
+                <div style="font-size:10.5px;color:var(--text-muted, #64748b);margin-top:2px">Suggest suitable crops based on soil NPK, pH & weather</div>
+                <button type="button" class="btn btn-sm btn-action-a" id="btn-suggest-crops" style="margin-top:6px;width:100%;font-size:11px;padding:4px">
+                  Suggest Crops &rarr;
+                </button>
+              </div>
+
+              <!-- Action B: I Know What I'm Sowing -->
+              <div class="soil-action-btn-card" onclick="toggleNutrientPlanSection()">
+                <div style="font-size:18px;margin-bottom:4px">🎯</div>
+                <div style="font-weight:700;font-size:12px;color:var(--text, #0f172a)">I Know What I'm Sowing</div>
+                <div style="font-size:10.5px;color:var(--text-muted, #64748b);margin-top:2px">Calculate exact fertilizer bags (Urea, DAP, MOP) needed</div>
+                <button type="button" class="btn btn-sm btn-action-b" id="btn-nutrient-plan-toggle" style="margin-top:6px;width:100%;font-size:11px;padding:4px">
+                  Calculate Bags &rarr;
+                </button>
+              </div>
+            </div>
+
+            <!-- Inline Target Crop Selection for Action B -->
+            <div id="nutrient-calc-drawer" style="display:none;margin-top:10px;padding:10px;background:var(--bg-card-sub, #f8fafc);border:1px solid var(--border, #e2e8f0);border-radius:8px">
+              <div style="font-weight:600;font-size:11.5px;margin-bottom:6px;color:var(--text, #0f172a)">Target Crop & Acreage:</div>
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                <select id="target-crop-select" style="flex:1;min-width:130px;padding:5px 8px;font-size:11.5px;border-radius:6px;border:1px solid #cbd5e1;background:var(--bg-input, #fff);color:var(--text, #0f172a)">
+                  <option value="wheat">Wheat (गेहूं)</option>
+                  <option value="paddy">Paddy / Rice (धान)</option>
+                  <option value="cotton">Cotton (कपास)</option>
+                  <option value="maize">Maize (मक्का)</option>
+                  <option value="sugarcane">Sugarcane (गन्ना)</option>
+                  <option value="mustard">Mustard (सरसों)</option>
+                  <option value="chickpea">Chickpea / Gram (चना)</option>
+                  <option value="soybean">Soybean (सोयाबीन)</option>
+                  <option value="potato">Potato (आलू)</option>
+                  <option value="onion">Onion (प्याज)</option>
+                  <option value="tomato">Tomato (टमाटर)</option>
+                  <option value="lentil">Lentil (मसूर)</option>
+                  <option value="pigeonpea">Pigeonpea / Arhar (अरहर)</option>
+                  <option value="mungbean">Mung Bean (मूंग)</option>
+                  <option value="blackgram">Black Gram (उड़द)</option>
+                  <option value="groundnut">Groundnut (मूंगफली)</option>
+                </select>
+                <input type="number" id="target-crop-acres" step="0.1" value="2.5" placeholder="Acres" style="width:65px;padding:5px 6px;font-size:11.5px;border-radius:6px;border:1px solid #cbd5e1;background:var(--bg-input, #fff);color:var(--text, #0f172a)" title="Field size in Acres"/>
+                <button type="button" class="btn btn-sm btn-primary" onclick="triggerNutrientPlanForCrop()" style="padding:5px 12px;font-size:11.5px">
+                  Calculate
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── INLINE RESULTS CONTAINER (Crops or Fertilizer Checklist) ── -->
+          <div id="soil-action-results" style="display:none;margin-top:12px"></div>
         </div>
       </div>
 

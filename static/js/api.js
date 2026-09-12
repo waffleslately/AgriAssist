@@ -125,3 +125,88 @@ async function checkHealth() {
     if (badge) badge.textContent = '● Connecting...';
   }
 }
+// Soil Report: Multi-format Ingestion & Crop/Nutrient Recommender
+async function apiUploadSoilReport(formData) {
+  const token = localStorage.getItem('kisan_token');
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE}/soil-reports/upload`, {
+    method: 'POST',
+    headers: headers,
+    body: formData
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function apiConfirmSoilReport(reportId, payload) {
+  const token = localStorage.getItem('kisan_token');
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE}/soil-reports/${reportId}/confirm`, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function apiSuggestCrops(reportId, lat, lng) {
+  const token = localStorage.getItem('kisan_token');
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  let url = `${BASE}/soil-reports/${reportId}/suggest-crops`;
+  const params = new URLSearchParams();
+  if (lat) params.append('latitude', lat);
+  if (lng) params.append('longitude', lng);
+  const q = params.toString();
+  if (q) url += `?${q}`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: headers
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function apiNutrientPlan(reportId, crop, acres, lat, lng) {
+  const token = localStorage.getItem('kisan_token');
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  let url = `${BASE}/soil-reports/${reportId}/nutrient-plan`;
+  const params = new URLSearchParams();
+  if (lat) params.append('latitude', lat);
+  if (lng) params.append('longitude', lng);
+  const q = params.toString();
+  if (q) url += `?${q}`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify({
+      crop: crop,
+      area_acres: parseFloat(acres) || 1.0
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+

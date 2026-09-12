@@ -1492,3 +1492,543 @@ window.downloadDroneMissionGeoJSON = function() {
   a.click();
   URL.revokeObjectURL(url);
 };
+
+// ===== SMART SOIL REPORT INGESTION & RECOMMENDATION =====
+
+let currentSoilReportId = null;
+let currentSoilReportData = null;
+
+window.toggleSoilTextInput = function() {
+  const box = document.getElementById('soil-text-box');
+  const btn = document.getElementById('soil-toggle-text-btn');
+  const dropzone = document.getElementById('soil-dropzone');
+  if (!box) return;
+  if (box.style.display === 'none' || box.style.display === '') {
+    box.style.display = 'block';
+    if (dropzone) dropzone.style.display = 'none';
+    if (btn) btn.textContent = '📁 Upload File';
+  } else {
+    box.style.display = 'none';
+    if (dropzone) dropzone.style.display = 'block';
+    if (btn) btn.textContent = '✏️ Paste Text';
+  }
+};
+
+window.handleSoilFileUpload = async function(file) {
+  if (!file) return;
+  const feedback = document.getElementById('soil-parse-feedback');
+  const title = document.getElementById('soil-parse-title');
+  const desc = document.getElementById('soil-parse-desc');
+  const icon = document.getElementById('soil-parse-icon');
+  const badge = document.getElementById('soil-parse-badge');
+
+  if (feedback) {
+    feedback.style.display = 'flex';
+    feedback.style.background = '#eff6ff';
+    feedback.style.borderColor = '#bfdbfe';
+    feedback.style.color = '#1e40af';
+  }
+  if (icon) icon.textContent = '⏳';
+  if (title) title.textContent = `Analyzing ${file.name}...`;
+  if (desc) desc.textContent = 'Extracting N, P, K, pH, OC values & standardizing units...';
+  if (badge) badge.style.display = 'none';
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('farmer_id', (typeof currentFarmer !== 'undefined' && currentFarmer && currentFarmer.farmer_id) || 'farmer_1');
+
+    const result = await apiUploadSoilReport(formData);
+    currentSoilReportId = result.report_id;
+    currentSoilReportData = result.extracted_data;
+
+    // Show success
+    if (feedback) {
+      feedback.style.background = '#f0fdf4';
+      feedback.style.borderColor = '#bbf7d0';
+      feedback.style.color = '#166534';
+    }
+    if (icon) icon.textContent = '✅';
+    if (title) title.textContent = `Extracted from ${file.name}`;
+    if (desc) {
+      const conf = Math.round((result.extracted_data.extraction_confidence || 0.9) * 100);
+      desc.textContent = `Format: ${(result.extracted_data.source_format || 'FILE').toUpperCase()} • Confidence: ${conf}%`;
+    }
+    if (badge) {
+      badge.style.display = 'inline-block';
+      const conf = Math.round((result.extracted_data.extraction_confidence || 0.9) * 100);
+      badge.textContent = `${conf}% Confidence`;
+    }
+
+    populateSoilFieldsFromReport(result.extracted_data);
+    if (typeof showToast === 'function') {
+      showToast(`📄 Soil Report Analyzed: Values populated to manual fields!`);
+    }
+  } catch (err) {
+    if (feedback) {
+      feedback.style.background = '#fef2f2';
+      feedback.style.borderColor = '#fecaca';
+      feedback.style.color = '#991b1b';
+    }
+    if (icon) icon.textContent = '⚠️';
+    if (title) title.textContent = 'Extraction Failed';
+    if (desc) desc.textContent = err.message || 'Could not parse report format. You can enter values manually below.';
+  }
+};
+
+window.handleSoilTextSubmit = async function() {
+  const textInput = document.getElementById('soil-raw-text');
+  const rawText = textInput ? textInput.value.trim() : '';
+  if (!rawText) {
+    alert('Please paste or type soil report test results first.');
+    return;
+  }
+
+  const feedback = document.getElementById('soil-parse-feedback');
+  const title = document.getElementById('soil-parse-title');
+  const desc = document.getElementById('soil-parse-desc');
+  const icon = document.getElementById('soil-parse-icon');
+  const badge = document.getElementById('soil-parse-badge');
+
+  if (feedback) {
+    feedback.style.display = 'flex';
+    feedback.style.background = '#eff6ff';
+    feedback.style.borderColor = '#bfdbfe';
+    feedback.style.color = '#1e40af';
+  }
+  if (icon) icon.textContent = '⏳';
+  if (title) title.textContent = 'Parsing typed text...';
+  if (desc) desc.textContent = 'Extracting NPK and soil metrics via regex matching...';
+  if (badge) badge.style.display = 'none';
+
+  try {
+    const formData = new FormData();
+    formData.append('raw_text', rawText);
+    formData.append('farmer_id', (typeof currentFarmer !== 'undefined' && currentFarmer && currentFarmer.farmer_id) || 'farmer_1');
+
+    const result = await apiUploadSoilReport(formData);
+    currentSoilReportId = result.report_id;
+    currentSoilReportData = result.extracted_data;
+
+    if (feedback) {
+      feedback.style.background = '#f0fdf4';
+      feedback.style.borderColor = '#bbf7d0';
+      feedback.style.color = '#166534';
+    }
+    if (icon) icon.textContent = '✅';
+    if (title) title.textContent = 'Nutrients Extracted from Text';
+    const conf = Math.round((result.extracted_data.extraction_confidence || 0.85) * 100);
+    if (desc) desc.textContent = `Extracted metrics with ${conf}% confidence`;
+    if (badge) {
+      badge.style.display = 'inline-block';
+      badge.textContent = `${conf}% Match`;
+    }
+
+    populateSoilFieldsFromReport(result.extracted_data);
+    if (typeof showToast === 'function') {
+      showToast('📄 Extracted nutrients from text!');
+    }
+  } catch (err) {
+    if (feedback) {
+      feedback.style.background = '#fef2f2';
+      feedback.style.borderColor = '#fecaca';
+      feedback.style.color = '#991b1b';
+    }
+    if (icon) icon.textContent = '⚠️';
+    if (title) title.textContent = 'Extraction Failed';
+    if (desc) desc.textContent = err.message || 'Could not parse text.';
+  }
+};
+
+function populateSoilFieldsFromReport(ext) {
+  if (!ext) return;
+
+  // Auto-enable manual overrides toggle so farmer sees the numbers
+  window.toggleManualOverrides(true);
+
+  // Clear previous review highlights
+  const fieldIds = ['manual-n', 'manual-p', 'manual-k', 'manual-ph', 'manual-oc', 'manual-ec'];
+  fieldIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.remove('field-needs-review');
+      // Add event listener to remove review highlight once farmer interacts/edits
+      el.oninput = () => el.classList.remove('field-needs-review');
+    }
+  });
+
+  const reviewNotice = document.getElementById('soil-review-notice');
+  let hasReviewFields = false;
+
+  const reviewList = ext.fields_requiring_review || [];
+
+  // Populate N
+  const nEl = document.getElementById('manual-n');
+  if (nEl && ext.nitrogen_kg_ha != null) {
+    nEl.value = Math.round(ext.nitrogen_kg_ha * 10) / 10;
+    if (reviewList.includes('nitrogen') || ext.nitrogen_kg_ha <= 0) {
+      nEl.classList.add('field-needs-review');
+      hasReviewFields = true;
+    }
+  }
+
+  // Populate P
+  const pEl = document.getElementById('manual-p');
+  if (pEl && ext.phosphorus_kg_ha != null) {
+    pEl.value = Math.round(ext.phosphorus_kg_ha * 10) / 10;
+    if (reviewList.includes('phosphorus') || ext.phosphorus_kg_ha <= 0) {
+      pEl.classList.add('field-needs-review');
+      hasReviewFields = true;
+    }
+  }
+
+  // Populate K
+  const kEl = document.getElementById('manual-k');
+  if (kEl && ext.potassium_kg_ha != null) {
+    kEl.value = Math.round(ext.potassium_kg_ha * 10) / 10;
+    if (reviewList.includes('potassium') || ext.potassium_kg_ha <= 0) {
+      kEl.classList.add('field-needs-review');
+      hasReviewFields = true;
+    }
+  }
+
+  // Populate pH
+  const phEl = document.getElementById('manual-ph');
+  if (phEl && ext.ph != null) {
+    phEl.value = Math.round(ext.ph * 100) / 100;
+    if (reviewList.includes('ph') || ext.ph < 3.5 || ext.ph > 10.5) {
+      phEl.classList.add('field-needs-review');
+      hasReviewFields = true;
+    }
+  }
+
+  // Populate OC
+  const ocEl = document.getElementById('manual-oc');
+  if (ocEl && ext.organic_carbon_pct != null) {
+    ocEl.value = Math.round(ext.organic_carbon_pct * 100) / 100;
+    if (reviewList.includes('organic_carbon')) {
+      ocEl.classList.add('field-needs-review');
+      hasReviewFields = true;
+    }
+  }
+
+  // Populate EC
+  const ecEl = document.getElementById('manual-ec');
+  if (ecEl && ext.electrical_conductivity_ds_m != null) {
+    ecEl.value = Math.round(ext.electrical_conductivity_ds_m * 100) / 100;
+  }
+
+  if (reviewNotice) {
+    reviewNotice.style.display = hasReviewFields || ext.needs_manual_review ? 'block' : 'none';
+  }
+
+  // Ensure action section is visible
+  const actionsCard = document.getElementById('soil-actions-card');
+  if (actionsCard) actionsCard.style.display = 'block';
+}
+
+async function confirmCurrentSoilValues() {
+  if (!currentSoilReportId) {
+    currentSoilReportId = 'rep_' + Date.now();
+  }
+  const payload = {
+    nitrogen_kg_ha: parseFloat(document.getElementById('manual-n')?.value) || 190.0,
+    phosphorus_kg_ha: parseFloat(document.getElementById('manual-p')?.value) || 18.0,
+    potassium_kg_ha: parseFloat(document.getElementById('manual-k')?.value) || 130.0,
+    ph: parseFloat(document.getElementById('manual-ph')?.value) || 7.4,
+    organic_carbon_pct: parseFloat(document.getElementById('manual-oc')?.value) || 0.45,
+    electrical_conductivity: parseFloat(document.getElementById('manual-ec')?.value) || 0.8,
+    state: document.getElementById('state')?.value || 'Punjab',
+    district: document.getElementById('district')?.value || 'Ludhiana'
+  };
+
+  try {
+    await apiConfirmSoilReport(currentSoilReportId, payload);
+  } catch (e) {
+    console.warn('Soil confirm sync note:', e);
+  }
+  return payload;
+}
+
+window.toggleNutrientPlanSection = function() {
+  const drawer = document.getElementById('nutrient-calc-drawer');
+  if (!drawer) return;
+  drawer.style.display = (drawer.style.display === 'none' || drawer.style.display === '') ? 'block' : 'none';
+  if (drawer.style.display === 'block') {
+    drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+};
+
+window.triggerCropSuggestions = async function() {
+  const resultsContainer = document.getElementById('soil-action-results');
+  if (resultsContainer) {
+    resultsContainer.style.display = 'block';
+    resultsContainer.innerHTML = `
+      <div style="text-align:center;padding:16px;background:var(--ag-surface);border:1px solid var(--ag-border);border-radius:8px">
+        <div style="font-size:24px;margin-bottom:6px">🌱</div>
+        <div style="font-weight:600;font-size:12px;color:var(--ag-text-primary)">Analyzing Atharva Ingle's Kaggle Reference Dataset...</div>
+        <div style="font-size:11px;color:var(--ag-text-muted);margin-top:2px">Evaluating 22 crops against soil NPK, pH, and local weather...</div>
+      </div>
+    `;
+    resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  try {
+    await confirmCurrentSoilValues();
+    const lat = (window.currentCoords && window.currentCoords[0] && window.currentCoords[0][1]) || 30.90;
+    const lng = (window.currentCoords && window.currentCoords[0] && window.currentCoords[0][0]) || 75.85;
+
+    const data = await apiSuggestCrops(currentSoilReportId, lat, lng);
+    renderCropSuggestions(data);
+  } catch (err) {
+    if (resultsContainer) {
+      resultsContainer.innerHTML = `
+        <div style="padding:12px;border-radius:8px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:12px">
+          ⚠️ <strong>Recommendation Error:</strong> ${err.message || 'Could not fetch crop suggestions.'}
+        </div>
+      `;
+    }
+  }
+};
+
+function renderCropSuggestions(data) {
+  const resultsContainer = document.getElementById('soil-action-results');
+  if (!resultsContainer || !data.suggested_crops) return;
+
+  const crops = data.suggested_crops;
+  const soil = data.input_soil || {};
+
+  let html = `
+    <div style="background:var(--ag-surface);border:1px solid var(--ag-border);border-radius:10px;padding:12px;box-shadow:0 2px 6px rgba(0,0,0,0.05)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid var(--ag-border);padding-bottom:8px">
+        <div>
+          <div style="font-weight:700;font-size:13px;color:var(--ag-text-primary)">🌾 Top 5 Recommended Crops For Your Soil</div>
+          <div style="font-size:10.5px;color:var(--ag-text-muted)">Based on N: ${soil.nitrogen_kg_ha} • P: ${soil.phosphorus_kg_ha} • K: ${soil.potassium_kg_ha} • pH: ${soil.ph}</div>
+        </div>
+        <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(45,106,79,0.1);color:var(--ag-primary);font-weight:700">Kaggle Dataset Match</span>
+      </div>
+      <div class="crop-rec-grid">
+  `;
+
+  crops.forEach((c, idx) => {
+    const badgeColor = c.fit_score >= 80 ? '#15803d' : (c.fit_score >= 65 ? '#0284c7' : '#b45309');
+    const badgeBg = c.fit_score >= 80 ? '#dcfce7' : (c.fit_score >= 65 ? '#e0f2fe' : '#fef3c7');
+
+    html += `
+      <div class="crop-rec-card">
+        <div style="display:flex;align-items:center;gap:10px;flex:1">
+          <div class="crop-rec-rank">#${idx + 1}</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-weight:700;font-size:13px;color:var(--ag-text-primary)">${c.display_name || c.crop}</span>
+              <span style="font-size:10.5px;color:var(--ag-text-muted)">(${c.season || 'Annual'})</span>
+            </div>
+            <div style="font-size:11px;color:var(--ag-text-muted);margin-top:2px;line-height:1.3">${c.why_suitable || c.suitability_summary}</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+          <div class="crop-rec-fit" style="color:${badgeColor};background:${badgeBg}">
+            ${c.fit_score}% Match
+          </div>
+          <button type="button" class="btn btn-sm btn-primary" onclick="selectCropAndCalculateDose('${c.crop_id || c.crop}')" style="font-size:10.5px;padding:3px 8px;white-space:nowrap">
+            Select & Dose ➜
+          </button>
+        </div>
+      </div>
+    `;
+  });
+
+  html += `
+      </div>
+    </div>
+  `;
+
+  resultsContainer.innerHTML = html;
+  resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+window.selectCropAndCalculateDose = function(cropName) {
+  const cropSelect = document.getElementById('target-crop-select');
+  if (cropSelect) {
+    for (let opt of cropSelect.options) {
+      if (opt.value.toLowerCase() === cropName.toLowerCase()) {
+        cropSelect.value = opt.value;
+        break;
+      }
+    }
+  }
+  const mainCropSelect = document.getElementById('crop-name');
+  if (mainCropSelect) {
+    for (let opt of mainCropSelect.options) {
+      if (opt.value.toLowerCase() === cropName.toLowerCase()) {
+        mainCropSelect.value = opt.value;
+        break;
+      }
+    }
+  }
+  triggerNutrientPlanForCrop(cropName);
+};
+
+window.triggerNutrientPlanForCrop = async function(cropOverride) {
+  const crop = cropOverride || document.getElementById('target-crop-select')?.value || 'wheat';
+  const acres = parseFloat(document.getElementById('target-crop-acres')?.value) || 2.5;
+
+  const resultsContainer = document.getElementById('soil-action-results');
+  if (resultsContainer) {
+    resultsContainer.style.display = 'block';
+    resultsContainer.innerHTML = `
+      <div style="text-align:center;padding:16px;background:var(--ag-surface);border:1px solid var(--ag-border);border-radius:8px">
+        <div style="font-size:24px;margin-bottom:6px">⚖️</div>
+        <div style="font-weight:600;font-size:12px;color:var(--ag-text-primary)">Calibrating STCR Nutrient Equation for ${crop.toUpperCase()}...</div>
+        <div style="font-size:11px;color:var(--ag-text-muted);margin-top:2px">Calculating exact commercial fertilizer bags (Urea, DAP, MOP)...</div>
+      </div>
+    `;
+    resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  try {
+    await confirmCurrentSoilValues();
+    const lat = (window.currentCoords && window.currentCoords[0] && window.currentCoords[0][1]) || 30.90;
+    const lng = (window.currentCoords && window.currentCoords[0] && window.currentCoords[0][0]) || 75.85;
+
+    const plan = await apiNutrientPlan(currentSoilReportId, crop, acres, lat, lng);
+    renderNutrientPlan(plan);
+  } catch (err) {
+    if (resultsContainer) {
+      resultsContainer.innerHTML = `
+        <div style="padding:12px;border-radius:8px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:12px">
+          ⚠️ <strong>Calculation Error:</strong> ${err.message || 'Could not calculate fertilizer plan.'}
+        </div>
+      `;
+    }
+  }
+};
+
+function renderNutrientPlan(data) {
+  const resultsContainer = document.getElementById('soil-action-results');
+  if (!resultsContainer) return;
+
+  const plan = data.fertilizer_plan || {};
+  const perAcre = plan.commercial_fertilizers_per_acre || {};
+  const totalField = plan.total_field_bags || {};
+  const acres = data.field_size_acres || 1.0;
+  const crop = data.crop || 'Crop';
+  const hindi = data.hindi_guidance || {};
+
+  let html = `
+    <div class="nutrient-plan-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid var(--ag-border);padding-bottom:8px">
+        <div>
+          <div style="font-weight:700;font-size:13px;color:var(--ag-text-primary)">🎯 Exact Fertilizer Prescription for ${crop.toUpperCase()}</div>
+          <div style="font-size:11px;color:var(--ag-text-muted)">Calibrated for ${acres} Acres • STCR Soil-Test Crop-Response Equation</div>
+        </div>
+        <span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;background:rgba(37,99,235,0.1);color:#2563eb">STCR Calibrated</span>
+      </div>
+
+      <!-- Fertilizer Bags Table / Row -->
+      <div style="margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--ag-text-primary);margin-bottom:6px">Commercial Fertilizer Bags Needed:</div>
+        
+        <div class="fert-bag-row">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:16px">⚪</span>
+            <div>
+              <div style="font-weight:700;font-size:12px;color:var(--ag-text-primary)">Neem-Coated Urea (45 kg bag)</div>
+              <div style="font-size:10.5px;color:var(--ag-text-muted)">Nitrogen (N) supplier • Per acre: ${(perAcre.urea_45kg_bags || 0).toFixed(1)} bags</div>
+            </div>
+          </div>
+          <div class="fert-bag-badge">${(totalField.urea_45kg_bags || 0).toFixed(1)} Bags</div>
+        </div>
+
+        <div class="fert-bag-row">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:16px">🟤</span>
+            <div>
+              <div style="font-weight:700;font-size:12px;color:var(--ag-text-primary)">Di-Ammonium Phosphate (DAP 50 kg bag)</div>
+              <div style="font-size:10.5px;color:var(--ag-text-muted)">Phosphorus (P) & Starter N • Per acre: ${(perAcre.dap_50kg_bags || 0).toFixed(1)} bags</div>
+            </div>
+          </div>
+          <div class="fert-bag-badge">${(totalField.dap_50kg_bags || 0).toFixed(1)} Bags</div>
+        </div>
+
+        <div class="fert-bag-row">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:16px">🔴</span>
+            <div>
+              <div style="font-weight:700;font-size:12px;color:var(--ag-text-primary)">Muriate of Potash (MOP 50 kg bag)</div>
+              <div style="font-size:10.5px;color:var(--ag-text-muted)">Potassium (K) supplier • Per acre: ${(perAcre.mop_50kg_bags || 0).toFixed(1)} bags</div>
+            </div>
+          </div>
+          <div class="fert-bag-badge">${(totalField.mop_50kg_bags || 0).toFixed(1)} Bags</div>
+        </div>
+      </div>
+
+      <!-- Application Schedule & Split Timing -->
+      <div style="background:rgba(241,245,249,0.5);border-radius:8px;padding:10px;margin-bottom:10px;font-size:11px">
+        <div style="font-weight:700;color:var(--ag-text-primary);margin-bottom:4px">⏱️ Application Schedule:</div>
+        <ul style="padding-left:16px;margin:0;color:var(--ag-text-muted);line-height:1.5">
+          <li><strong>Basal Dose (बुवाई के समय):</strong> 100% DAP, 100% MOP, and 33-50% Urea applied at sowing time.</li>
+          <li><strong>First Top Dressing (पहली टॉप ड्रेसिंग):</strong> Apply 25-33% Urea at first irrigation / 20-25 days after sowing.</li>
+          <li><strong>Second Top Dressing (दूसरी टॉप ड्रेसिंग):</strong> Remaining Urea at flowering/tillering stage.</li>
+        </ul>
+      </div>
+
+      <!-- Bilingual Hindi Guidance Card -->
+      ${hindi.hindi_prescription ? `
+        <div style="background:#fefce8;border:1px solid #fef08a;border-radius:8px;padding:10px;font-size:11px;color:#854d0e">
+          <div style="font-weight:700;margin-bottom:4px">🇮🇳 किसान भाई के लिए खाद की सलाह:</div>
+          <div style="line-height:1.4">${hindi.hindi_prescription}</div>
+        </div>
+      ` : ''}
+
+      <div style="display:flex;justify-content:flex-end;margin-top:10px">
+        <button type="button" class="btn btn-sm btn-outline" onclick="window.print()" style="font-size:11px;padding:4px 10px">
+          🖨️ Print Prescription
+        </button>
+      </div>
+    </div>
+  `;
+
+  resultsContainer.innerHTML = html;
+  resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Attach dropzone listeners
+function setupSoilDropzone() {
+  const dropzone = document.getElementById('soil-dropzone');
+  if (!dropzone) return;
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.add('dragover');
+    }, false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('dragover');
+    }, false);
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropzone.classList.remove('dragover');
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files && files.length > 0) {
+      window.handleSoilFileUpload(files[0]);
+    }
+  }, false);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupSoilDropzone);
+} else {
+  setupSoilDropzone();
+}
+
