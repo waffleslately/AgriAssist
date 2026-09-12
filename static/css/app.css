@@ -276,3 +276,43 @@ body { font-family: var(--font); background: var(--gray-100); color: var(--gray-
   .panel-right { width: 100% !important; border: none !important; }
   .result-card { box-shadow: none !important; border: 1px solid #999 !important; page-break-inside: avoid; }
 }
+
+/* ===== GOOGLE MAPS FLOATING SEARCH BAR ===== */
+.map-floating-search {
+  position: absolute;
+  top: 14px;
+  left: 60px;
+  z-index: 1000;
+  display: flex;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 5px 8px;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  border: 1px solid #cbd5e1;
+  width: 360px;
+  max-width: calc(100% - 140px);
+}
+.map-floating-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 12px;
+  background: transparent;
+  font-family: inherit;
+  color: #1e293b;
+}
+.btn-search {
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s;
+}
+.btn-search:hover {
+  background: #15803d;
+}

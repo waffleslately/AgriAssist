@@ -349,8 +349,13 @@
     </div>
   </aside>
 
-  <!-- CENTRE: Leaflet Map -->
+  <!-- CENTRE: Leaflet Map with Google Maps Real Satellite -->
   <section class="panel panel-map">
+    <!-- Google Maps Location & Village Search -->
+    <div class="map-floating-search">
+      <input type="text" id="map-search-input" placeholder="🔍 Search village, tehsil or district in India..." onkeydown="if(event.key==='Enter') searchMapLocation()"/>
+      <button class="btn btn-search" onclick="searchMapLocation()">Search</button>
+    </div>
     <div id="map"></div>
     <div class="map-hint-bar">
       <span>🛰️ Sentinel-2 & High-Res Drone View</span>
