@@ -249,6 +249,8 @@ async def onboard_plot_pipeline(
             "weather_warning": plan.get("weather_hold_warning"),
             "localized_text": localized.get(payload.language, localized["en"]),
             "localized_hi": localized.get("hi"),
-            "localized_en": localized.get("en")
+            "localized_en": localized.get("en"),
+            "localized_pa": localized.get("pa"),
+            "localized_mr": localized.get("mr")
         }
     }

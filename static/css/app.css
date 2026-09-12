@@ -267,3 +267,12 @@ body { font-family: var(--font); background: var(--gray-100); color: var(--gray-
 
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 999px; }
+
+/* ===== PRINT STYLES ===== */
+@media print {
+  body { overflow: visible !important; background: #fff !important; }
+  .app-header, .panel-left, .panel-map, .map-hint-bar, .modal-overlay, .loading-overlay { display: none !important; }
+  .app-main { display: block !important; height: auto !important; }
+  .panel-right { width: 100% !important; border: none !important; }
+  .result-card { box-shadow: none !important; border: 1px solid #999 !important; page-break-inside: avoid; }
+}

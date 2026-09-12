@@ -266,6 +266,7 @@ window.triggerDroneAnalysis = async function() {
   showLoading('Analyzing Aerial Drone Imagery & Canopy Patches...');
   try {
     const data = await apiAnalyzeDroneImage(payload);
+    window._latestDroneData = data;
     hideLoading();
     if (window.renderDronePatchesOnMap) {
       window.renderDronePatchesOnMap(data.patches);
@@ -474,21 +475,29 @@ function renderAdvisoryResults(data, lang) {
       <div class="advisory-lang-toggle">
         <button class="lang-btn ${lang==='hi'?'active':''}" onclick="switchAdvisoryLang('hi',this)">हिंदी</button>
         <button class="lang-btn ${lang==='en'?'active':''}" onclick="switchAdvisoryLang('en',this)">English</button>
+        <button class="lang-btn ${lang==='pa'?'active':''}" onclick="switchAdvisoryLang('pa',this)">ਪੰਜਾਬੀ</button>
+        <button class="lang-btn ${lang==='mr'?'active':''}" onclick="switchAdvisoryLang('mr',this)">मराठी</button>
       </div>
       <div class="advisory-text" id="advisory-text">${localText}</div>
+      <div style="display:flex;gap:6px;margin-top:10px">
+        <button class="btn btn-primary" style="flex:1" onclick="printAdvisorySlip()"><span class="btn-icon">🖨️</span> Print / Save Slip</button>
+        <button class="btn" style="flex:1;background:#25d366;color:#fff" onclick="shareAdvisoryWhatsApp()"><span class="btn-icon">💬</span> WhatsApp</button>
+      </div>
     </div>
   `;
 
   window._advisoryHi = data.recommendation.localized_hi || localText;
   window._advisoryEn = data.recommendation.localized_en || localText;
+  window._advisoryPa = data.recommendation.localized_pa || localText;
+  window._advisoryMr = data.recommendation.localized_mr || localText;
   el.parentElement.scrollTop = 0;
 }
 
 window.switchAdvisoryLang = function(lang, btn) {
   document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  const txt = lang === 'hi' ? window._advisoryHi : window._advisoryEn;
-  document.getElementById('advisory-text').textContent = txt || '';
+  const mapping = { hi: window._advisoryHi, en: window._advisoryEn, pa: window._advisoryPa, mr: window._advisoryMr };
+  document.getElementById('advisory-text').textContent = mapping[lang] || window._advisoryHi || '';
 };
 
 // ===== RENDER DRONE ANALYSIS RESULTS =====
@@ -571,6 +580,7 @@ function renderDroneResults(data) {
       <div class="drone-param"><span class="drone-param-key">Flight Speed & Swath</span><span class="drone-param-val">${dgca.flight_speed_m_s} m/s · ${dgca.swath_width_m}m swath</span></div>
       <div class="drone-param"><span class="drone-param-key">Nozzle Specification</span><span class="drone-param-val" style="font-size:11px">${dgca.nozzle_spec}</span></div>
       <div class="drone-param"><span class="drone-param-key">Weather Envelope</span><span class="drone-param-val" style="font-size:10px">${dgca.weather_envelope}</span></div>
+      <button class="btn btn-drone btn-full" onclick="downloadDroneMissionGeoJSON()" style="margin-top:10px"><span class="btn-icon">📥</span> Download DGCA Flight Plan (GeoJSON)</button>
     </div>` : ''}
 
     <div class="result-card">
@@ -737,3 +747,48 @@ function renderError(msg) {
       <p style="font-size:12px;color:#9f1239">${msg}</p>
     </div>`;
 }
+
+// ===== EXPORT & PRINT UTILITIES =====
+
+window.printAdvisorySlip = function() {
+  window.print();
+};
+
+window.shareAdvisoryWhatsApp = function() {
+  const text = encodeURIComponent("🌾 Kisan Advisory Prescription:\n" + (document.getElementById('advisory-text') ? document.getElementById('advisory-text').textContent : ''));
+  window.open("https://api.whatsapp.com/send?text=" + text, "_blank");
+};
+
+window.downloadDroneMissionGeoJSON = function() {
+  if (!window._latestDroneData) {
+    alert("Please run a drone canopy analysis first.");
+    return;
+  }
+  const geojson = {
+    type: "FeatureCollection",
+    properties: {
+      survey_id: window._latestDroneData.survey_id,
+      crop: window._latestDroneData.crop_name,
+      sensor: window._latestDroneData.sensor_type,
+      dgca_mission: window._latestDroneData.dgca_precision_mission
+    },
+    features: (window._latestDroneData.patches || []).map(p => ({
+      type: "Feature",
+      geometry: p.geojson_geometry,
+      properties: {
+        patch_id: p.patch_id,
+        patch_type: p.patch_type,
+        severity: p.severity_level,
+        area_acres: p.area_acres,
+        notes: p.notes
+      }
+    }))
+  };
+  const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `dgca_drone_mission_${window._latestDroneData.crop_name}_${Date.now()}.geojson`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
