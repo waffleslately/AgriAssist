@@ -1,3 +1,4 @@
+HEAD
 ﻿# India Agri-Advisory Platform (Backend & Frontend)
 
 Production-grade, modular geospatial platform for **Soil, Crop, Drone & Pest Advisory** scoped specifically for Indian agriculture (ICAR, CIBRC, and DGCA standards).
@@ -157,3 +158,6 @@ All 11 unit tests cover:
 - CIBRC pest thresholds & DGCA drone spray parameter generation
 - GeoJSON boundary polygon validation and area calculations
 - Soil Health Card nearest-neighbor fallback
+# AgriAssist
+this an application for farmers assistance with modern technology
+ 3e4816d85e1bc932d2199ea6ccc0fca6a3e6540a
