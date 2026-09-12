@@ -1,7 +1,7 @@
 import uuid
 import math
 from datetime import date
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,9 +11,11 @@ from app.db.session import get_db
 from app.models.farmer import Farmer
 from app.models.plot import Plot
 from app.models.crop_cycle import CropCycle
+from app.models.drone import DroneScan
 from app.models.satellite_observation import SatelliteObservation
 from app.models.advisory import Advisory
 from app.schemas.plot import PlotOnboardRequest, PlotResponse
+
 from app.services import gee_service, weather_service, soil_service, agronomy_engine, localization_service
 from app.api.v1.endpoints.auth import FARMER_STORE
 
@@ -262,4 +264,122 @@ async def onboard_plot_pipeline(
             "localized_pa": localized.get("pa"),
             "localized_mr": localized.get("mr")
         }
+    }
+
+
+@router.get("/{plot_id}/development-history", summary="Crop Development Over Time — aggregated NDVI & health trend across past drone scans")
+async def get_plot_development_history(plot_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    """
+    Aggregates all past drone scans for this plot into a vegetation trend.
+    For each scan, computes:
+      - avg_ndvi: mean NDVI across all cells in result_json
+      - healthy_pct / moderate_pct / stressed_pct: % of cells in each category
+      - weed_count: number of weed cluster points
+    Returns an ordered list of scan summaries (oldest → newest) for charting.
+    No new computation — pure aggregation over already-stored result_json data.
+    """
+    # Look up crop name from most recent active crop cycle for this plot
+    crop_name = "Unknown"
+    plot_name = "Field"
+    try:
+        plot_res = await db.execute(select(Plot).where(Plot.id == plot_id))
+        plot = plot_res.scalars().first()
+        if plot:
+            plot_name = plot.name or "Field"
+
+        cycle_res = await db.execute(
+            select(CropCycle)
+            .where(CropCycle.plot_id == plot_id, CropCycle.is_active == True)
+            .order_by(CropCycle.sowing_date.desc())
+        )
+        cycle = cycle_res.scalars().first()
+        if cycle:
+            crop_name = cycle.crop_name
+    except Exception:
+        pass
+
+    # Fetch all scans for this plot, oldest first for trend chart ordering
+    try:
+        stmt = (
+            select(DroneScan)
+            .where(DroneScan.plot_id == plot_id)
+            .order_by(DroneScan.scan_date.asc())
+        )
+        result = await db.execute(stmt)
+        scans = result.scalars().all()
+    except Exception as e:
+        scans = []
+
+    # Fallback to in-memory store if DB is offline or empty
+    if not scans:
+        from app.api.v1.endpoints.drone import DRONE_SCANS_STORE
+        mem_list = DRONE_SCANS_STORE.get(str(plot_id), [])
+        # Sort oldest first by scan_date
+        scans = sorted(mem_list, key=lambda s: s["scan_date"])
+
+    scan_trend = []
+    for s in scans:
+        if isinstance(s, dict):
+            scan_id = str(s["id"])
+            s_date = s["scan_date"]
+            grid = s.get("result_json") or {}
+        else:
+            scan_id = str(s.id)
+            s_date = s.scan_date
+            grid = s.result_json or {}
+
+        scan_date_str = s_date.strftime("%Y-%m-%d") if hasattr(s_date, "strftime") else str(s_date).split("T")[0]
+
+        healthy_cells = grid.get("healthy", [])
+        moderate_cells = grid.get("moderate", [])
+        stressed_cells = grid.get("stressed_or_bare", [])
+        weed_points = grid.get("weed_cluster", []) or grid.get("weed_detections", [])
+
+        all_cells = grid.get("cells", [])
+        if not all_cells:
+            all_cells = healthy_cells + moderate_cells + stressed_cells
+        else:
+            if not healthy_cells:
+                healthy_cells = [c for c in all_cells if c.get("status") == "healthy"]
+            if not moderate_cells:
+                moderate_cells = [c for c in all_cells if c.get("status") == "moderate"]
+            if not stressed_cells:
+                stressed_cells = [c for c in all_cells if c.get("status") == "stressed_or_bare"]
+
+        total_cells = len(healthy_cells) + len(moderate_cells) + len(stressed_cells)
+
+        # avg_ndvi: mean over all cells that carry an ndvi value
+        ndvi_values = [c.get("ndvi") for c in all_cells if c.get("ndvi") is not None]
+        avg_ndvi = round(sum(ndvi_values) / len(ndvi_values), 3) if ndvi_values else None
+
+        healthy_pct = round(len(healthy_cells) / total_cells * 100, 1) if total_cells else 0.0
+        moderate_pct = round(len(moderate_cells) / total_cells * 100, 1) if total_cells else 0.0
+        stressed_pct = round(len(stressed_cells) / total_cells * 100, 1) if total_cells else 0.0
+
+        # Normalise to exactly 100%
+        total_pct = healthy_pct + moderate_pct + stressed_pct
+        if total_pct > 0 and abs(total_pct - 100.0) > 0.5:
+            scale = 100.0 / total_pct
+            healthy_pct = round(healthy_pct * scale, 1)
+            moderate_pct = round(moderate_pct * scale, 1)
+            stressed_pct = round(100.0 - healthy_pct - moderate_pct, 1)
+
+        scan_trend.append({
+            "scan_id": scan_id,
+            "scan_date": scan_date_str,
+            "avg_ndvi": avg_ndvi,
+            "healthy_pct": healthy_pct,
+            "moderate_pct": moderate_pct,
+            "stressed_pct": stressed_pct,
+            "weed_count": len(weed_points),
+            "total_cells": total_cells,
+            "image_url": grid.get("image_url")
+        })
+
+    return {
+        "plot_id": str(plot_id),
+        "plot_name": plot_name,
+        "crop": crop_name,
+        "scan_count": len(scan_trend),
+        "scans": scan_trend
     }

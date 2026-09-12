@@ -26,6 +26,9 @@ router = APIRouter()
 UPLOAD_DIR = Path("uploads/drone")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+# In-memory store for resilient persistence when PostgreSQL is offline
+DRONE_SCANS_STORE: Dict[str, List[Dict[str, Any]]] = {}
+
 @router.post("/analyze-image", summary="Upload Drone Imagery & Compute Interactive NDVI Grid + Weed Clusters")
 async def analyze_drone_image_direct(
     request: Request,
@@ -148,6 +151,23 @@ async def analyze_drone_image_direct(
             demo_img = PILImage.new("RGB", (640, 480), color=(76, 175, 80))
             demo_img.save(saved_path)
 
+        scan_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+
+        # Generate web-compatible JPEG preview for frontend image overlay
+        static_drone_dir = Path("static/uploads/drone")
+        static_drone_dir.mkdir(parents=True, exist_ok=True)
+        image_url = f"/static/uploads/drone/{scan_id}.jpg"
+        img_w, img_h = 640, 480
+        try:
+            from PIL import Image as PILImage
+            with PILImage.open(saved_path) as im:
+                img_w, img_h = im.size
+                im_rgb = im.convert("RGB")
+                im_rgb.save(static_drone_dir / f"{scan_id}.jpg", format="JPEG", quality=85)
+        except Exception as img_err:
+            logger.warning(f"Could not generate JPEG preview: {img_err}")
+
         # 2. Compute NDVI Grid
         ndvi_cells = drone_analysis_service.compute_ndvi_grid(
             image_path=str(saved_path),
@@ -162,7 +182,7 @@ async def analyze_drone_image_direct(
             plot_boundary=boundary_coords
         )
 
-        # 4. Combine Results
+        # 4. Combine Results with both semantic categories and pixel-based arrays
         healthy_cells = [c for c in ndvi_cells if c["status"] == "healthy"]
         moderate_cells = [c for c in ndvi_cells if c["status"] == "moderate"]
         stressed_cells = [c for c in ndvi_cells if c["status"] == "stressed_or_bare"]
@@ -171,10 +191,15 @@ async def analyze_drone_image_direct(
             "healthy": healthy_cells,
             "moderate": moderate_cells,
             "stressed_or_bare": stressed_cells,
-            "weed_cluster": weed_points
+            "weed_cluster": weed_points,
+            "cells": ndvi_cells,
+            "weed_detections": weed_points,
+            "image_url": image_url,
+            "image_width": img_w,
+            "image_height": img_h
         }
 
-        # Clean up temporary file
+        # Clean up temporary uploaded file
         try:
             if saved_path.exists():
                 os.remove(saved_path)
@@ -182,15 +207,21 @@ async def analyze_drone_image_direct(
             pass
 
         # 5. Persist to drone_scans table
-        scan_id = uuid.uuid4()
-        now = datetime.now(timezone.utc)
-
         target_plot_uuid = None
         if plot_id_val:
             try:
                 target_plot_uuid = uuid.UUID(str(plot_id_val))
             except ValueError:
                 target_plot_uuid = None
+
+        # In-memory store persistence
+        plot_key = str(target_plot_uuid or plot_id_val or "default")
+        DRONE_SCANS_STORE.setdefault(plot_key, []).append({
+            "id": scan_id,
+            "plot_id": target_plot_uuid or plot_id_val,
+            "scan_date": now,
+            "result_json": combined_grid
+        })
 
         if target_plot_uuid:
             try:
@@ -228,9 +259,14 @@ async def analyze_drone_image_direct(
             "status": "success",
             "scan_id": str(scan_id),
             "plot_id": str(target_plot_uuid) if target_plot_uuid else None,
-            "scan_date": now.isoformat(),
+            "scan_date": now.strftime("%Y-%m-%d"),
             "sensor_type": sensor_type,
             "crop_name": crop_name,
+            "image_url": image_url,
+            "image_width": img_w,
+            "image_height": img_h,
+            "cells": ndvi_cells,
+            "weed_detections": weed_points,
             "total_cells": total_cells,
             "overall_stand_uniformity_pct": healthy_pct,
             "stressed_area_pct": stressed_pct,
@@ -255,26 +291,152 @@ async def analyze_drone_image_direct(
 
 @router.get("/scans/{plot_id}", summary="Fetch past drone scans for a plot")
 async def get_plot_drone_scans(plot_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    """Retrieves previous drone scans stored in the drone_scans table."""
+    """Retrieves previous drone scans stored in the drone_scans table or in-memory store."""
     try:
         stmt = select(DroneScan).where(DroneScan.plot_id == plot_id).order_by(DroneScan.scan_date.desc())
         result = await db.execute(stmt)
         scans = result.scalars().all()
-        return [
-            {
-                "id": str(s.id),
-                "plot_id": str(s.plot_id),
-                "scan_date": s.scan_date.isoformat(),
-                "created_at": s.created_at.isoformat(),
-                "summary": {
-                    "healthy_count": len(s.result_json.get("healthy", [])),
-                    "moderate_count": len(s.result_json.get("moderate", [])),
-                    "stressed_count": len(s.result_json.get("stressed_or_bare", [])),
-                    "weed_count": len(s.result_json.get("weed_cluster", []))
+        if scans:
+            return [
+                {
+                    "id": str(s.id),
+                    "plot_id": str(s.plot_id),
+                    "scan_date": s.scan_date.isoformat(),
+                    "created_at": s.created_at.isoformat(),
+                    "summary": {
+                        "healthy_count": len(s.result_json.get("healthy", [])),
+                        "moderate_count": len(s.result_json.get("moderate", [])),
+                        "stressed_count": len(s.result_json.get("stressed_or_bare", [])),
+                        "weed_count": len(s.result_json.get("weed_cluster", []))
+                    }
                 }
+                for s in scans
+            ]
+    except Exception:
+        pass
+
+    # Fallback to in-memory store
+    mem_scans = DRONE_SCANS_STORE.get(str(plot_id), [])
+    return [
+        {
+            "id": str(s["id"]),
+            "plot_id": str(plot_id),
+            "scan_date": s["scan_date"].isoformat() if hasattr(s["scan_date"], "isoformat") else str(s["scan_date"]),
+            "created_at": s["scan_date"].isoformat() if hasattr(s["scan_date"], "isoformat") else str(s["scan_date"]),
+            "summary": {
+                "healthy_count": len(s["result_json"].get("healthy", [])),
+                "moderate_count": len(s["result_json"].get("moderate", [])),
+                "stressed_count": len(s["result_json"].get("stressed_or_bare", [])),
+                "weed_count": len(s["result_json"].get("weed_cluster", []))
             }
-            for s in scans
-        ]
+        }
+        for s in reversed(mem_scans)
+    ]
+
+
+@router.get("/scan-detail/{scan_id}", summary="Fetch the full grid of a specific past drone scan")
+async def get_scan_detail(scan_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    """
+    Returns the complete result_json grid for a specific past scan,
+    so the frontend can redraw the Part A patch overlay for that historical date.
+    """
+    # 1. Try DB
+    try:
+        stmt = select(DroneScan).where(DroneScan.id == scan_id)
+        result = await db.execute(stmt)
+        scan = result.scalars().first()
+        if scan:
+            return {
+                "scan_id": str(scan.id),
+                "plot_id": str(scan.plot_id),
+                "scan_date": scan.scan_date.isoformat(),
+                "grid": scan.result_json
+            }
+    except Exception:
+        pass
+
+    # 2. Check in-memory store
+    str_scan_id = str(scan_id)
+    for p_id, scans in DRONE_SCANS_STORE.items():
+        for s in scans:
+            if str(s["id"]) == str_scan_id:
+                return {
+                    "scan_id": str(s["id"]),
+                    "plot_id": str(s.get("plot_id") or p_id),
+                    "scan_date": s["scan_date"].isoformat() if hasattr(s["scan_date"], "isoformat") else str(s["scan_date"]),
+                    "grid": s["result_json"]
+                }
+
+    raise HTTPException(status_code=404, detail="Scan not found.")
+
+
+@router.post("/seed-demo-history/{plot_id}", summary="Seed historical demo scans for trend charting")
+async def seed_demo_history(plot_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    """
+    Inserts 2 historical scans (14 days ago and 28 days ago) for this plot
+    to immediately demonstrate the NDVI trend curve and stacked health comparison.
+    """
+    now = datetime.now(timezone.utc)
+    from datetime import timedelta
+    # 28 days ago scan
+    d1 = now - timedelta(days=28)
+    cells_d1 = [
+        {"x": 50, "y": 50, "norm_x": 0.1, "norm_y": 0.1, "norm_w": 0.25, "norm_h": 0.25, "ndvi": 0.38, "status": "moderate", "action": "Early vegetative emergence."},
+        {"x": 150, "y": 150, "norm_x": 0.45, "norm_y": 0.45, "norm_w": 0.25, "norm_h": 0.25, "ndvi": 0.24, "status": "stressed_or_bare", "action": "Germination gap and bare soil."},
+        {"x": 250, "y": 250, "norm_x": 0.72, "norm_y": 0.2, "norm_w": 0.22, "norm_h": 0.25, "ndvi": 0.42, "status": "moderate", "action": "Moderate stand emergence."}
+    ]
+    scan1_id = uuid.uuid4()
+    scan1_dict = {
+        "id": scan1_id,
+        "plot_id": plot_id,
+        "scan_date": d1,
+        "result_json": {
+            "healthy": [],
+            "moderate": [cells_d1[0], cells_d1[2]],
+            "stressed_or_bare": [cells_d1[1]],
+            "weed_cluster": [{"x": 100, "y": 200, "norm_x": 0.3, "norm_y": 0.6, "type": "weed_cluster", "confidence": 0.85}],
+            "cells": cells_d1,
+            "image_url": "/static/img/drone_orthomosaic_preview.jpg"
+        }
+    }
+
+    # 14 days ago scan
+    d2 = now - timedelta(days=14)
+    cells_d2 = [
+        {"x": 50, "y": 50, "norm_x": 0.1, "norm_y": 0.1, "norm_w": 0.25, "norm_h": 0.25, "ndvi": 0.64, "status": "healthy", "action": "High chlorophyll tillering stand."},
+        {"x": 150, "y": 150, "norm_x": 0.45, "norm_y": 0.45, "norm_w": 0.25, "norm_h": 0.25, "ndvi": 0.52, "status": "moderate", "action": "Moderate canopy recovery."},
+        {"x": 250, "y": 250, "norm_x": 0.72, "norm_y": 0.2, "norm_w": 0.22, "norm_h": 0.25, "ndvi": 0.68, "status": "healthy", "action": "Uniform canopy closure."}
+    ]
+    scan2_id = uuid.uuid4()
+    scan2_dict = {
+        "id": scan2_id,
+        "plot_id": plot_id,
+        "scan_date": d2,
+        "result_json": {
+            "healthy": [cells_d2[0], cells_d2[2]],
+            "moderate": [cells_d2[1]],
+            "stressed_or_bare": [],
+            "weed_cluster": [],
+            "cells": cells_d2,
+            "image_url": "/static/img/drone_orthomosaic_preview.jpg"
+        }
+    }
+
+    # Always persist in in-memory store
+    plot_key = str(plot_id)
+    existing = DRONE_SCANS_STORE.get(plot_key, [])
+    DRONE_SCANS_STORE[plot_key] = [scan1_dict, scan2_dict] + [s for s in existing if s["id"] not in (scan1_id, scan2_id)]
+
+    # Try DB persistence if available
+    try:
+        plot = (await db.execute(select(Plot).where(Plot.id == plot_id))).scalars().first()
+        if plot:
+            scan1 = DroneScan(id=scan1_id, plot_id=plot_id, scan_date=d1, result_json=scan1_dict["result_json"])
+            scan2 = DroneScan(id=scan2_id, plot_id=plot_id, scan_date=d2, result_json=scan2_dict["result_json"])
+            db.add(scan1)
+            db.add(scan2)
+            await db.commit()
     except Exception as e:
-        logger.warning(f"Error fetching drone scans: {e}")
-        return []
+        logger.warning(f"Could not persist seeded scans to DB: {e}")
+
+    return {"status": "success", "seeded_scans": 2, "plot_id": str(plot_id)}

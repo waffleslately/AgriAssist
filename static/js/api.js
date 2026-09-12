@@ -76,6 +76,26 @@ async function apiAnalyzeDroneImage(payload) {
   return res.json();
 }
 
+// Drone: Crop Development History over time
+async function apiGetDevelopmentHistory(plotId) {
+  const res = await fetch(`${BASE}/api/v1/plots/${plotId}/development-history`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Drone: Specific past scan detail
+async function apiGetScanDetail(scanId) {
+  const res = await fetch(`${BASE}/api/v1/drone/scan-detail/${scanId}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 // Pest: CIBRC Diagnosis & DGCA Prescription
 async function apiDiagnosePest(payload) {
   const res = await fetch(`${BASE}/api/v1/pest/diagnose`, {

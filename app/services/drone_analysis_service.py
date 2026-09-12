@@ -171,6 +171,14 @@ class DroneAnalysisService:
                     action = f"NDVI {cell_ndvi:.2f} — investigate for acute moisture deficit, nitrogen deficiency, or root rot."
 
                 cells_result.append({
+                    "x": int(x_start),
+                    "y": int(y_start),
+                    "width": int(x_end - x_start),
+                    "height": int(y_end - y_start),
+                    "norm_x": round(float(x_start / img_w), 4),
+                    "norm_y": round(float(y_start / img_h), 4),
+                    "norm_w": round(float((x_end - x_start) / img_w), 4),
+                    "norm_h": round(float((y_end - y_start) / img_h), 4),
                     "lat": round(cell_center_lat, 6),
                     "lon": round(cell_center_lon, 6),
                     "ndvi": round(cell_ndvi, 3),
@@ -245,6 +253,10 @@ class DroneAnalysisService:
                         box_lon = min_lon + (cx / img_w) * (max_lon - min_lon)
                         box_lat = max_lat - (cy / img_h) * (max_lat - min_lat)
                         detections.append({
+                            "x": int(cx),
+                            "y": int(cy),
+                            "norm_x": round(float(cx / img_w), 4),
+                            "norm_y": round(float(cy / img_h), 4),
                             "lat": round(box_lat, 6),
                             "lon": round(box_lon, 6),
                             "type": "weed_cluster",
@@ -253,15 +265,15 @@ class DroneAnalysisService:
                         })
             except Exception as exc:
                 logger.warning(f"Roboflow API call failed or timed out: {exc}. Using fallback weed detection.")
-                detections = self._fallback_weed_detections(min_lon, min_lat, max_lon, max_lat, poly)
+                detections = self._fallback_weed_detections(min_lon, min_lat, max_lon, max_lat, poly, img_w, img_h)
         else:
             logger.info("ROBOFLOW_API_KEY not configured. Generating realistic weed hotspot markers.")
-            detections = self._fallback_weed_detections(min_lon, min_lat, max_lon, max_lat, poly)
+            detections = self._fallback_weed_detections(min_lon, min_lat, max_lon, max_lat, poly, img_w, img_h)
 
         return detections
 
     @staticmethod
-    def _fallback_weed_detections(min_lon: float, min_lat: float, max_lon: float, max_lat: float, poly: Polygon) -> List[Dict[str, Any]]:
+    def _fallback_weed_detections(min_lon: float, min_lat: float, max_lon: float, max_lat: float, poly: Polygon, img_w: int = 640, img_h: int = 480) -> List[Dict[str, Any]]:
         """Provides realistic weed cluster points along edges/furrows if API key is not active."""
         offsets = [
             (0.35, 0.40, 0.88),
@@ -274,6 +286,10 @@ class DroneAnalysisService:
             lat = min_lat + oy * (max_lat - min_lat)
             if poly.contains(Point(lon, lat)):
                 results.append({
+                    "x": int(ox * img_w),
+                    "y": int((1.0 - oy) * img_h),
+                    "norm_x": round(float(ox), 4),
+                    "norm_y": round(float(1.0 - oy), 4),
                     "lat": round(lat, 6),
                     "lon": round(lon, 6),
                     "type": "weed_cluster",

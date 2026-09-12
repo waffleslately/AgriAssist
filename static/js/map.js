@@ -172,11 +172,6 @@ window.renderDronePatchesOnMap = function(data) {
   dronePatchesLayer.clearLayers();
   if (!data) return;
 
-  // Open Map modal if not open
-  if (window.openMapModal && document.getElementById('map-modal-overlay').style.display === 'none') {
-    window.openMapModal();
-  }
-
   const grid = data.grid || (data.healthy || data.moderate || data.stressed_or_bare ? data : null);
   const bounds = [];
 

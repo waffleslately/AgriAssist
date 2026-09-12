@@ -999,11 +999,17 @@ function renderDroneResults(data) {
   }
 
   el.innerHTML = `
+    <!-- PART A: INTERACTIVE DRONE IMAGE & PATCH OVERLAY -->
+    <div id="drone-image-overlay-card"></div>
+
+    <!-- PART B: CROP DEVELOPMENT OVER TIME (HISTORICAL TREND CHART) -->
+    <div id="drone-history-card"></div>
+
     <div class="result-card">
       <div class="result-card-header">
         <div class="result-card-icon">🚁</div>
         <div>
-          <div class="result-card-title">Drone Canopy Analysis Results</div>
+          <div class="result-card-title">Drone Canopy Performance Metrics</div>
           <div class="result-card-sub">${data.sensor_type.replace('_',' ').toUpperCase()} · ${data.flight_altitude_meters}m Altitude</div>
         </div>
       </div>
@@ -1021,10 +1027,10 @@ function renderDroneResults(data) {
 
     <div class="result-card">
       <div class="result-card-header">
-        <div class="result-card-icon">🗺️</div>
+        <div class="result-card-icon">📊</div>
         <div>
-          <div class="result-card-title">Identified Field Zones</div>
-          <div class="result-card-sub">Rendered as interactive polygons on the map</div>
+          <div class="result-card-title">Field Zone Breakdown</div>
+          <div class="result-card-sub">Classified spatial zones across surveyed plot</div>
         </div>
       </div>
       <div class="metric-grid-4">
@@ -1044,9 +1050,6 @@ function renderDroneResults(data) {
           <div class="metric-val" style="color:#eab308;font-size:17px">${counts['bare_soil_gap'] || 0}</div>
           <div class="metric-label">Bare Soil Gaps</div>
         </div>
-      </div>
-      <div style="font-size:11px;color:#64748b;margin-top:8px;text-align:center">
-        💡 Click any colored patch polygon on the map to inspect its size and treatment.
       </div>
     </div>
 
@@ -1082,6 +1085,12 @@ function renderDroneResults(data) {
       `).join('')}
     </div>
   `;
+
+  // Render Part A (Image Overlay) and Part B (Crop Development History)
+  if (window.renderDroneOverlayAndHistory) {
+    window.renderDroneOverlayAndHistory(data);
+  }
+
   el.parentElement.scrollTop = 0;
 }
 
