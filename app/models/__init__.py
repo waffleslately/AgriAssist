@@ -8,6 +8,7 @@ from app.models.drone import DroneSurvey, PlotPatch, DroneScan
 from app.models.pest_control import PestDetectionReport
 from app.models.livestock import Livestock, LivestockLocation
 from app.models.soil_report import UserSoilReport
+from app.models.pest_reference import PestReference, PestDiagnosis
 
 __all__ = [
     "Farmer",
@@ -22,5 +23,7 @@ __all__ = [
     "PestDetectionReport",
     "Livestock",
     "LivestockLocation",
-    "UserSoilReport"
+    "UserSoilReport",
+    "PestReference",
+    "PestDiagnosis"
 ]

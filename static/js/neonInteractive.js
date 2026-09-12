@@ -266,9 +266,13 @@ window.selectPestCard = function(elem, pestId) {
     else if (pestId === 'pink_bollworm' || pestId === 'whitefly') cropSelect.value = 'cotton';
     else if (pestId === 'fall_armyworm') cropSelect.value = 'maize';
     else if (pestId === 'blast' || pestId === 'yellow_stem_borer') cropSelect.value = 'paddy';
+    else if (pestId === 'sugarcane_borer') cropSelect.value = 'sugarcane';
+    else if (pestId === 'gram_pod_borer') cropSelect.value = 'gram';
+    else if (pestId === 'mustard_aphid') cropSelect.value = 'mustard';
+    else if (pestId === 'potato_late_blight') cropSelect.value = 'potato';
   }
 
-  showToast("Selected pest: " + pestId.replace('_', ' ').toUpperCase());
+  showToast("Selected pest: " + pestId.replace(/_/g, ' ').toUpperCase());
 };
 
 window.updateSeverityIndicator = function(val) {

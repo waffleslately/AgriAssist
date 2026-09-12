@@ -849,9 +849,202 @@ window.triggerDroneAnalysis = async function() {
   }
 };
 
+
+// ===== PHOTO-BASED PEST DIAGNOSIS HANDLERS =====
+let selectedPestPhotoFile = null;
+
+window.handlePestPhotoSelected = function(file) {
+  if (!file) return;
+  selectedPestPhotoFile = file;
+
+  // Show preview
+  const previewWrap = document.getElementById('pest-img-preview-wrap');
+  const previewImg = document.getElementById('pest-img-preview');
+  const filenameTxt = document.getElementById('pest-photo-filename');
+  const clearBtn = document.getElementById('pest-clear-photo-btn');
+  const dropzoneSub = document.getElementById('pest-dropzone-sub');
+  const dropzoneIcon = document.getElementById('pest-dropzone-icon');
+
+  if (previewWrap && previewImg) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      previewImg.src = e.target.result;
+      previewWrap.style.display = 'block';
+      if (filenameTxt) filenameTxt.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+      if (clearBtn) clearBtn.style.display = 'block';
+      if (dropzoneSub) dropzoneSub.style.display = 'none';
+      if (dropzoneIcon) dropzoneIcon.textContent = '📸';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Automatically start photo diagnosis
+  window.triggerPestPhotoDiagnosis();
+};
+
+window.clearPestPhoto = function() {
+  selectedPestPhotoFile = null;
+  const input = document.getElementById('pest-photo-input');
+  if (input) input.value = '';
+  const previewWrap = document.getElementById('pest-img-preview-wrap');
+  if (previewWrap) previewWrap.style.display = 'none';
+  const clearBtn = document.getElementById('pest-clear-photo-btn');
+  if (clearBtn) clearBtn.style.display = 'none';
+  const banner = document.getElementById('pest-detect-status-banner');
+  if (banner) banner.style.display = 'none';
+  const candBox = document.getElementById('pest-candidate-matches-box');
+  if (candBox) candBox.style.display = 'none';
+  const dropzoneSub = document.getElementById('pest-dropzone-sub');
+  if (dropzoneSub) dropzoneSub.style.display = 'block';
+  const dropzoneIcon = document.getElementById('pest-dropzone-icon');
+  if (dropzoneIcon) dropzoneIcon.textContent = '🌿';
+  showToast("Photo cleared. Reverted to manual pest card selection.");
+};
+
+window.triggerPestPhotoDiagnosis = async function() {
+  if (!selectedPestPhotoFile) {
+    alert("Please select a photo of the affected crop first.");
+    return;
+  }
+
+  const crop = document.getElementById('pest-crop').value;
+  const pestKey = document.getElementById('pest-key').value;
+  const severity = parseFloat(document.getElementById('severity-slider').value);
+  const droneSpray = document.getElementById('drone-spray').checked;
+
+  const plotId = (function() {
+    const sel = document.getElementById('pest-target-land');
+    if (sel && sel.value !== '' && currentFarmer.plots[sel.value]) {
+      return currentFarmer.plots[sel.value].plot_id || '00000000-0000-0000-0000-000000000001';
+    }
+    return '00000000-0000-0000-0000-000000000001';
+  })();
+
+  const formData = new FormData();
+  formData.append('photo', selectedPestPhotoFile);
+  formData.append('plot_id', plotId);
+  formData.append('crop_hint', crop);
+  formData.append('suspected_pest', pestKey);
+  formData.append('severity_observed_pct', severity);
+  formData.append('drone_spray_requested', droneSpray);
+
+  // Show status banner
+  const banner = document.getElementById('pest-detect-status-banner');
+  const title = document.getElementById('pest-detect-title');
+  const desc = document.getElementById('pest-detect-desc');
+  const badge = document.getElementById('pest-confidence-badge');
+  const candBox = document.getElementById('pest-candidate-matches-box');
+
+  if (banner) {
+    banner.style.display = 'flex';
+    if (title) title.textContent = 'Analyzing Crop Symptoms...';
+    if (desc) desc.textContent = 'Running pretrained vision model & matching ICAR countermeasures';
+    if (badge) badge.style.display = 'none';
+  }
+  if (candBox) candBox.style.display = 'none';
+
+  showLoading('Analyzing Crop Photo with Pretrained Vision Models...');
+
+  try {
+    const data = await apiAnalyzePestPhoto(formData);
+    hideLoading();
+
+    // Update Banner
+    if (banner) {
+      banner.style.display = 'flex';
+      if (title) title.textContent = `Identified: ${data.detected_class} (${data.scientific_name || ''})`;
+      if (desc) desc.textContent = data.is_uncertain 
+        ? 'Confidence below 60% — please review the candidate options below' 
+        : `Verified diagnosis via ${data.detection_source.replace(/_/g, ' ')}`;
+      if (badge) {
+        badge.style.display = 'inline-block';
+        badge.textContent = `${data.confidence_pct}% Match`;
+        badge.className = data.is_uncertain ? 'pest-confidence-badge uncertain' : 'pest-confidence-badge';
+      }
+    }
+
+    // If uncertain, display selectable candidate cards
+    if (data.is_uncertain && data.alternate_matches && data.alternate_matches.length > 0) {
+      if (candBox) {
+        candBox.style.display = 'block';
+        const candList = document.getElementById('pest-candidate-matches-list');
+        if (candList) {
+          candList.innerHTML = data.alternate_matches.map(m => `
+            <div class="candidate-match-card" onclick="window.confirmPestCandidate('${m.pest_name}')">
+              <div>
+                <div style="font-weight:700;font-size:12px;color:var(--ag-text-primary)">${m.pest_name}</div>
+                <div style="font-size:10.5px;color:var(--ag-text-muted)">${m.scientific_name} | Crops: ${m.affected_crops.join(', ')}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-weight:800;font-size:11px;color:#b45309">${m.confidence_pct}%</span>
+                <span class="btn-text-sm" style="font-size:10.5px">Select ➜</span>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+    } else if (candBox) {
+      candBox.style.display = 'none';
+    }
+
+    // Auto-update severity slider if estimated by model
+    if (data.estimated_severity_pct && window.updateSeverityIndicator) {
+      const slider = document.getElementById('severity-slider');
+      if (slider) {
+        slider.value = data.estimated_severity_pct;
+        window.updateSeverityIndicator(data.estimated_severity_pct);
+      }
+    }
+
+    // Render diagnostic results & ICAR countermeasures
+    renderPestResults(data);
+    showToast(`Diagnosed: ${data.detected_class} (${data.confidence_pct}%)`);
+
+  } catch (e) {
+    hideLoading();
+    if (banner) banner.style.display = 'none';
+    renderError(e.message || "Failed to analyze crop photo.");
+  }
+};
+
+window.confirmPestCandidate = async function(pestName) {
+  showLoading(`Loading ICAR countermeasures for ${pestName}...`);
+  try {
+    const crop = document.getElementById('pest-crop').value;
+    const severity = parseFloat(document.getElementById('severity-slider').value);
+    const droneSpray = document.getElementById('drone-spray').checked;
+    const data = await apiConfirmPestSelection({
+      pest_name: pestName,
+      crop_hint: crop,
+      severity_observed_pct: severity,
+      drone_spray_requested: droneSpray
+    });
+    hideLoading();
+    const candBox = document.getElementById('pest-candidate-matches-box');
+    if (candBox) candBox.style.display = 'none';
+    const title = document.getElementById('pest-detect-title');
+    if (title) title.textContent = `Confirmed Selection: ${pestName}`;
+    const badge = document.getElementById('pest-confidence-badge');
+    if (badge) {
+      badge.textContent = 'Farmer Confirmed';
+      badge.className = 'pest-confidence-badge';
+    }
+    renderPestResults(data);
+    showToast(`Confirmed: ${pestName}`);
+  } catch (e) {
+    hideLoading();
+    renderError(e.message);
+  }
+};
+
+
 // ===== PEST & IPM DIAGNOSIS =====
 
 window.triggerPestDiagnosis = async function() {
+  // If photo is selected, route to photo diagnosis
+  if (selectedPestPhotoFile) {
+    return window.triggerPestPhotoDiagnosis();
+  }
   const crop = document.getElementById('pest-crop').value;
   const pest = document.getElementById('pest-key').value;
   const severity = parseFloat(document.getElementById('severity-slider').value);
@@ -1307,69 +1500,97 @@ function renderPestResults(data) {
   const el = document.getElementById('results-content');
   el.style.display = 'block';
 
-  const etl = data.economic_threshold_breached;
-  const dp = data.drone_spray_prescription;
-  const fp = dp ? dp.flight_parameters : {};
+  const pestName = data.pest_name || data.detected_class || 'Crop Pest / Disease';
+  const sciName = data.scientific_name || '';
+  const severity = data.severity_observed_pct !== undefined ? data.severity_observed_pct : (data.estimated_severity_pct || 18);
+  const etl = data.economic_threshold_breached !== undefined ? data.economic_threshold_breached : (severity >= 10);
+  const dp = data.drone_prescription || data.drone_spray_prescription;
+  const fp = dp ? (dp.flight_parameters || {}) : {};
+  const cm = data.countermeasures || {};
+  const regNote = data.regulatory_note || (cm.regulatory_note || null);
+
+  const organicList = cm.organic_countermeasures || (data.ipm_measures ? data.ipm_measures.cultural : []);
+  const chemList = cm.chemical_countermeasures || [];
   const bio = data.ipm_measures ? data.ipm_measures.biological : {};
   const chem = data.ipm_measures ? data.ipm_measures.chemical : {};
-  const cultural = data.ipm_measures ? data.ipm_measures.cultural : [];
+  const symptoms = cm.symptoms || '';
+  const idealTiming = cm.ideal_spray_timing || '';
+  const sourceNote = cm.source_note || '';
 
   el.innerHTML = `
-    <div class="result-card" style="${etl ? 'border-color:#fca5a5;background:#fff7f7' : ''}">
+    <!-- Top Result Header -->
+    <div class="result-card" style="${etl ? 'border-color:#fca5a5;background:rgba(254,226,226,0.2)' : ''}">
       <div class="result-card-header">
-        <div class="result-card-icon">🐛</div>
+        <div class="result-card-icon">🔬</div>
         <div>
-          <div class="result-card-title">${data.pest_name}</div>
-          <div class="result-card-sub">${data.scientific_name || ''}</div>
+          <div class="result-card-title">${pestName}</div>
+          <div class="result-card-sub" style="font-style:italic">${sciName}</div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
         <span class="status-badge ${etl ? 'status-red' : 'status-green'}">
-          ${etl ? '🚨 ETL Breached (Action Required)' : '✅ Below Economic Threshold'}
+          ${etl ? '🚨 ETL Breached (Action Required)' : '✅ Below Critical Threshold'}
         </span>
-        <span style="font-size:11.5px;color:#64748b">Severity: ${data.severity_observed_pct}%</span>
+        <span style="font-size:11.5px;color:var(--ag-text-muted)">Infestation Severity: <strong>${severity}%</strong></span>
+        ${data.confidence_pct ? `<span class="pest-confidence-badge ${data.is_uncertain ? 'uncertain' : ''}">${data.confidence_pct}% Match</span>` : ''}
       </div>
-      <div style="font-size:11px;color:#475569;background:#f8fafc;padding:8px;border-radius:6px;border:1px solid #e2e8f0">
-        📌 <strong>CIBRC Standard:</strong> ${data.etl_guideline}
-      </div>
+      ${symptoms ? `
+      <div style="font-size:11px;color:var(--ag-text-primary);background:var(--ag-surface);padding:8px 10px;border-radius:6px;border:1px solid var(--ag-border);line-height:1.4">
+        🔍 <strong>Observed Symptoms:</strong> ${symptoms}
+      </div>` : ''}
     </div>
 
-    <div class="result-card">
-      <div class="result-card-header">
-        <div class="result-card-icon">🪤</div>
-        <div><div class="result-card-title">Cultural & Mechanical Practices</div></div>
+    <!-- MANDATORY REGULATORY NOTICE (Rice Blast export restriction flag) -->
+    ${regNote ? `
+    <div class="pest-regulatory-banner">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <span style="font-size:16px">⚠️</span>
+        <strong style="font-size:12px;text-transform:uppercase;letter-spacing:0.5px">Official Regulatory & Export Warning</strong>
       </div>
-      ${cultural.map(m => `<div style="font-size:11.5px;color:#475569;padding:4px 0">• ${m}</div>`).join('')}
-    </div>
+      <div>${regNote}</div>
+    </div>` : ''}
 
+    <!-- Organic & Biological Countermeasures -->
     <div class="result-card">
       <div class="result-card-header">
-        <div class="result-card-icon">🍃</div>
+        <div class="result-card-icon">🌿</div>
         <div>
-          <div class="result-card-title">Biological Control (Eco-Friendly)</div>
-          <div class="result-card-sub">ICAR Approved Bio-pesticides</div>
+          <div class="result-card-title">Organic & Biological Countermeasures</div>
+          <div class="result-card-sub">ICAR Approved Cultural, Mechanical & Bio-Controls</div>
         </div>
       </div>
-      <div class="weather-row"><span class="weather-key">Agent / Product</span><span class="weather-val">${bio.name || '-'}</span></div>
-      <div class="weather-row"><span class="weather-key">Recommended Dose</span><span class="weather-val">${bio.dosage_per_acre || '-'}</span></div>
-      <div class="weather-row"><span class="weather-key">Application Time</span><span class="weather-val">${bio.timing || '-'}</span></div>
+      ${organicList.length > 0 ? organicList.map(m => `
+        <div style="font-size:11.5px;color:var(--ag-text-primary);padding:4px 0;line-height:1.4">• ${m}</div>
+      `).join('') : `
+        <div class="weather-row"><span class="weather-key">Bio-Agent</span><span class="weather-val">${bio.name || 'Neem Extract 5%'}</span></div>
+        <div class="weather-row"><span class="weather-key">Dosage</span><span class="weather-val">${bio.dosage_per_acre || '1000 ml/acre'}</span></div>
+      `}
     </div>
 
+    <!-- Chemical Countermeasures -->
     <div class="result-card">
       <div class="result-card-header">
         <div class="result-card-icon">🧪</div>
         <div>
-          <div class="result-card-title">Chemical Treatment (CIBRC Label Claim)</div>
-          <div class="result-card-sub">${chem.trade_examples || ''}</div>
+          <div class="result-card-title">Chemical Countermeasures</div>
+          <div class="result-card-sub">CIBRC & ICAR Verified Chemical Treatments</div>
         </div>
       </div>
-      <div class="weather-row"><span class="weather-key">Active Chemical</span><span class="weather-val" style="font-size:11px">${chem.active_ingredient || '-'}</span></div>
-      <div class="weather-row"><span class="weather-key">Knapsack Spray Dose</span><span class="weather-val" style="font-size:11px">${chem.dosage_knapsack_per_acre || '-'}</span></div>
-      <div class="weather-row"><span class="weather-key">Pre-Harvest Interval</span><span class="weather-val">${chem.waiting_period_days || '-'} days</span></div>
+      ${chemList.length > 0 ? chemList.map(c => `
+        <div style="font-size:11.5px;color:var(--ag-text-primary);padding:4px 0;line-height:1.4">• ${c}</div>
+      `).join('') : `
+        <div class="weather-row"><span class="weather-key">Active Chemical</span><span class="weather-val">${chem.active_ingredient || '-'}</span></div>
+        <div class="weather-row"><span class="weather-key">Knapsack Dose</span><span class="weather-val">${chem.dosage_knapsack_per_acre || '-'}</span></div>
+      `}
+      ${idealTiming ? `
+      <div style="margin-top:8px;font-size:11px;color:#0369a1;background:#f0f9ff;padding:6px 10px;border-radius:4px;border-left:3px solid #0284c7">
+        ⏱️ <strong>Ideal Spray Timing:</strong> ${idealTiming}
+      </div>` : ''}
     </div>
 
+    <!-- DGCA Ultra-Low Volume Drone Prescription -->
     ${dp && dp.applicable ? `
-    <div class="result-card" style="border-color:#bae6fd;background:#f0f9ff">
+    <div class="result-card" style="border-color:#bae6fd;background:rgba(240,249,255,0.4)">
       <div class="result-card-header">
         <div class="result-card-icon">🚁</div>
         <div>
@@ -1377,28 +1598,21 @@ function renderPestResults(data) {
           <div class="result-card-sub">Ultra-Low Volume (ULV) – 10 L/acre</div>
         </div>
       </div>
-      <div class="drone-param"><span class="drone-param-key">Spray Water Volume</span><span class="drone-param-val">${dp.drone_water_volume_litres} Litres</span></div>
-      <div class="drone-param"><span class="drone-param-key">Chemical Rate</span><span class="drone-param-val">${dp.chemical_rate_per_acre}</span></div>
-      <div class="drone-param"><span class="drone-param-key">Flight Altitude</span><span class="drone-param-val">${fp.flight_altitude_meters_above_crop}m above crop canopy</span></div>
-      <div class="drone-param"><span class="drone-param-key">Flight Speed</span><span class="drone-param-val">${fp.flight_speed_m_per_s} m/s</span></div>
-      <div class="drone-param"><span class="drone-param-key">Nozzle</span><span class="drone-param-val">Anti-drift Flat Fan (150-250µm)</span></div>
+      <div class="drone-param"><span class="drone-param-key">Target Chemical Formulation</span><span class="drone-param-val" style="font-size:11px">${dp.target_chemical}</span></div>
+      <div class="drone-param"><span class="drone-param-key">Spray Water Volume</span><span class="drone-param-val">${dp.drone_water_volume_litres} Litres (ULV)</span></div>
+      <div class="drone-param"><span class="drone-param-key">Application Rate</span><span class="drone-param-val">${dp.chemical_rate_per_acre || 'Standard ICAR rate'}</span></div>
+      <div class="drone-param"><span class="drone-param-key">Flight Altitude</span><span class="drone-param-val">${fp.flight_altitude_meters_above_crop || '2.0'}m above crop canopy</span></div>
+      <div class="drone-param"><span class="drone-param-key">Flight Speed</span><span class="drone-param-val">${fp.flight_speed_m_per_s || '4.0'} m/s</span></div>
+      <div class="drone-param"><span class="drone-param-key">Nozzle Spec</span><span class="drone-param-val">Anti-drift Centrifugal (150-250µm)</span></div>
     </div>` : ''}
 
-    <div class="result-card">
-      <div class="result-card-header">
-        <div class="result-card-icon">📋</div>
-        <div><div class="result-card-title">Localized Farmer Prescription</div></div>
-      </div>
-      <div class="advisory-lang-toggle">
-        <button class="lang-btn active" onclick="switchPestAdvisoryLang('hi',this)">हिंदी</button>
-        <button class="lang-btn" onclick="switchPestAdvisoryLang('en',this)">English</button>
-      </div>
-      <div class="advisory-text" id="pest-advisory-text">${(data.localized_advice && data.localized_advice.hi) || ''}</div>
-    </div>
+    <!-- Official ICAR Research Source Note -->
+    ${sourceNote ? `
+    <div style="font-size:10px;color:var(--ag-text-muted);margin-top:6px;padding:6px 8px;border-top:1px dashed var(--ag-border);text-align:right">
+      🏛️ Source: ${sourceNote}
+    </div>` : ''}
   `;
 
-  window._pestHi = (data.localized_advice && data.localized_advice.hi) || '';
-  window._pestEn = (data.localized_advice && data.localized_advice.en) || '';
   el.parentElement.scrollTop = 0;
 }
 

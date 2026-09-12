@@ -229,3 +229,39 @@ async function apiGetRevenueEstimate(plotId, expectedYieldPerAcre) {
   return res.json();
 }
 
+
+
+// Photo-Based Pest Diagnosis API
+async function apiAnalyzePestPhoto(formData) {
+  const res = await fetch(`${BASE}/pest-diagnosis/analyze`, {
+    method: 'POST',
+    body: formData
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function apiConfirmPestSelection(payload) {
+  const res = await fetch(`${BASE}/pest-diagnosis/confirm-selection`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function apiGetPestReference() {
+  const res = await fetch(`${BASE}/pest-diagnosis/reference`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}

@@ -9,6 +9,7 @@ from app.api.v1.endpoints import (
     advisories,
     drone,
     pest,
+    pest_diagnosis,
     iot,
     livestock,
     soil_reports
@@ -26,6 +27,6 @@ api_router.include_router(soil_reports.router, prefix="/soil-reports", tags=["So
 api_router.include_router(advisories.router, prefix="/advisories", tags=["Advisories & Recommendations"])
 api_router.include_router(drone.router, prefix="/drone", tags=["Drone Surveys & Patch Analytics"])
 api_router.include_router(pest.router, prefix="/pest", tags=["Pest Control & Drone Spraying"])
+api_router.include_router(pest_diagnosis.router, prefix="/pest-diagnosis", tags=["Photo Pest & Disease Diagnosis"])
 api_router.include_router(iot.router, prefix="/iot", tags=["IoT Telemetry & Collar Ingestion"])
 api_router.include_router(livestock.router, prefix="/livestock", tags=["Livestock Tracking & Grazing Analytics"])
-

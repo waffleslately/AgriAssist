@@ -9,14 +9,13 @@ from app.core.config import settings
 from app.core.logging import setup_logging, logger
 from app.db.init_db import init_db
 from app.api.v1.api import api_router
-from app.api.v1.endpoints import soil_reports, plots
+from app.api.v1.endpoints import soil_reports, plots, pest_diagnosis
 
 setup_logging()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting up Indian Agri-Advisory Backend Infrastructure...")
-    # Initialize PostGIS tables if running in direct auto-sync mode
     try:
         await init_db()
         logger.info("Database schema verified/initialized.")
@@ -35,8 +34,9 @@ app = FastAPI(
     ## India-Scoped Agri-Advisory Backend (Phase 1 MVP)
     
     Provides spatial plot management, Sentinel-2 Google Earth Engine NDVI ingestion, 
-    Soil Health Card analysis, Open-Meteo rainfall forecasting, and ICAR-aligned 
-    fertilizer recommendations converting target NPK into standard Indian bags (Urea, DAP, MOP).
+    Soil Health Card analysis, Open-Meteo rainfall forecasting, photo-based pest diagnosis,
+    and ICAR-aligned fertilizer and pest prescriptions converting target NPK and IPM
+    into standard Indian formulations and DGCA drone spray plans.
     """
 )
 
@@ -68,9 +68,8 @@ async def serve_frontend():
 static_dir = Path(__file__).parent.parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
-# Mount API V1 router
+# Mount API V1 router & direct aliases
 app.include_router(api_router, prefix=settings.API_V1_STR)
 app.include_router(soil_reports.router, prefix="/soil-reports", tags=["Soil Reports & Recommender"])
 app.include_router(plots.router, prefix="/plots", tags=["Plots Direct Alias"])
-
-
+app.include_router(pest_diagnosis.router, prefix="/pest-diagnosis", tags=["Photo Pest Diagnosis Direct Alias"])

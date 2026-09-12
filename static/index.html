@@ -610,7 +610,64 @@
         </select>
       </div>
 
+      <!-- ── PHOTO-BASED PEST / DISEASE DIAGNOSIS DROPZONE ── -->
+      <div class="pest-photo-upload-card" id="pest-photo-card">
+        <div class="pest-photo-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:18px">📸</span>
+            <div>
+              <div style="font-weight:700;font-size:13px;color:var(--ag-text-primary)">Photo-Based Pest & Disease Diagnosis</div>
+              <div style="font-size:11px;color:var(--ag-text-muted)">Upload affected crop photo for AI vision detection + official ICAR countermeasures</div>
+            </div>
+          </div>
+          <button type="button" class="btn-text-sm" id="pest-clear-photo-btn" onclick="clearPestPhoto()" style="display:none;font-size:11px;padding:3px 8px;border-radius:4px">
+            ✕ Clear Photo
+          </button>
+        </div>
+
+        <div class="pest-dropzone" id="pest-dropzone" onclick="document.getElementById('pest-photo-input').click()">
+          <input type="file" id="pest-photo-input" accept="image/jpeg,image/png,image/jpg" style="display:none" onchange="handlePestPhotoSelected(this.files[0])"/>
+          <div class="pest-dropzone-icon" id="pest-dropzone-icon">🌿</div>
+          <div class="pest-dropzone-text" id="pest-dropzone-text">
+            <strong>Click to upload crop photo</strong> or drag & drop image here
+          </div>
+          <div class="pest-dropzone-sub" id="pest-dropzone-sub">Supports JPG, JPEG, PNG from mobile camera or field inspection</div>
+          
+          <!-- Image preview container -->
+          <div id="pest-img-preview-wrap" style="display:none;margin-top:8px;position:relative">
+            <img id="pest-img-preview" src="" alt="Crop photo preview" style="max-height:140px;border-radius:6px;border:1px solid var(--ag-border);object-fit:cover;"/>
+            <div id="pest-photo-filename" style="font-size:11px;color:var(--ag-text-primary);font-weight:600;margin-top:4px"></div>
+          </div>
+        </div>
+
+        <!-- Detection Status Banner -->
+        <div id="pest-detect-status-banner" class="pest-detect-banner" style="display:none">
+          <span id="pest-detect-spinner">⏳</span>
+          <div style="flex:1">
+            <div id="pest-detect-title" style="font-weight:700;font-size:11.5px">Analyzing crop symptoms...</div>
+            <div id="pest-detect-desc" style="font-size:10.5px;opacity:0.9">Running pretrained neural vision models & matching ICAR packages</div>
+          </div>
+          <div id="pest-confidence-badge" class="pest-confidence-badge" style="display:none">94% Match</div>
+        </div>
+
+        <!-- Low Confidence Candidate Matches Grid -->
+        <div id="pest-candidate-matches-box" style="display:none;margin-top:10px;padding:10px;background:rgba(254,243,199,0.25);border:1px dashed #f59e0b;border-radius:6px">
+          <div style="font-size:11.5px;font-weight:700;color:#b45309;margin-bottom:6px">
+            ⚠️ Not fully certain — here are the closest matches (click to confirm):
+          </div>
+          <div id="pest-candidate-matches-list" style="display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+      </div>
+
+      <!-- Manual fallback header -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 6px 0">
+        <span style="font-size:11.5px;font-weight:700;color:var(--ag-text-muted);text-transform:uppercase;letter-spacing:0.5px">Or Select Suspected Pest Card (Manual Fallback):</span>
+        <span style="font-size:10.5px;color:var(--ag-sprout)">8 ICAR Major Pests</span>
+      </div>
+
+      <!-- 8 ICAR Target Pest Cards Grid -->
       <div class="pest-cards-grid">
+        <!-- 1. Wheat: Yellow Rust -->
         <div class="pest-card-item selected" onclick="selectPestCard(this, 'yellow_rust')">
           <div style="display:flex;justify-content:space-between">
             <span style="font-size:18px">🌾</span>
@@ -620,6 +677,7 @@
           <div style="font-size:10.5px;color:var(--ag-text-muted)">Stripe Rust (Puccinia)</div>
         </div>
 
+        <!-- 2. Cotton: Pink Bollworm -->
         <div class="pest-card-item" onclick="selectPestCard(this, 'pink_bollworm')">
           <div style="display:flex;justify-content:space-between">
             <span style="font-size:18px">🐛</span>
@@ -629,6 +687,7 @@
           <div style="font-size:10.5px;color:var(--ag-text-muted)">Rosetted flower borer</div>
         </div>
 
+        <!-- 3. Maize: Fall Armyworm -->
         <div class="pest-card-item" onclick="selectPestCard(this, 'fall_armyworm')">
           <div style="display:flex;justify-content:space-between">
             <span style="font-size:18px">🌽</span>
@@ -638,13 +697,54 @@
           <div style="font-size:10.5px;color:var(--ag-text-muted)">Whorl foliage feeder</div>
         </div>
 
+        <!-- 4. Paddy: Rice Blast -->
         <div class="pest-card-item" onclick="selectPestCard(this, 'blast')">
           <div style="display:flex;justify-content:space-between">
             <span style="font-size:18px">🍃</span>
             <span style="font-size:10px;background:var(--chart-green-bg);color:var(--chart-green-primary);padding:1px 6px;border-radius:4px;font-weight:700">Paddy</span>
           </div>
           <div style="font-size:12px;font-weight:800;color:var(--ag-text-primary);margin-top:2px">Rice Blast</div>
-          <div style="font-size:10.5px;color:var(--ag-text-muted)">Spindle-shaped lesions</div>
+          <div style="font-size:10.5px;color:var(--ag-text-muted)">Spindle lesions & neck rot</div>
+        </div>
+
+        <!-- 5. Sugarcane: Early Shoot Borer -->
+        <div class="pest-card-item" onclick="selectPestCard(this, 'sugarcane_borer')">
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:18px">🎋</span>
+            <span style="font-size:10px;background:rgba(217,249,157,0.5);color:#4d7c0f;padding:1px 6px;border-radius:4px;font-weight:700">Sugarcane</span>
+          </div>
+          <div style="font-size:12px;font-weight:800;color:var(--ag-text-primary);margin-top:2px">Early Shoot Borer</div>
+          <div style="font-size:10.5px;color:var(--ag-text-muted)">Dead heart & basal bore</div>
+        </div>
+
+        <!-- 6. Chickpea / Gram: Gram Pod Borer -->
+        <div class="pest-card-item" onclick="selectPestCard(this, 'gram_pod_borer')">
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:18px">🌿</span>
+            <span style="font-size:10px;background:rgba(254,240,138,0.5);color:#854d0e;padding:1px 6px;border-radius:4px;font-weight:700">Chickpea</span>
+          </div>
+          <div style="font-size:12px;font-weight:800;color:var(--ag-text-primary);margin-top:2px">Gram Pod Borer</div>
+          <div style="font-size:10.5px;color:var(--ag-text-muted)">Helicoverpa pod borer</div>
+        </div>
+
+        <!-- 7. Mustard: Mustard Aphid -->
+        <div class="pest-card-item" onclick="selectPestCard(this, 'mustard_aphid')">
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:18px">🌼</span>
+            <span style="font-size:10px;background:rgba(254,249,195,0.7);color:#a16207;padding:1px 6px;border-radius:4px;font-weight:700">Mustard</span>
+          </div>
+          <div style="font-size:12px;font-weight:800;color:var(--ag-text-primary);margin-top:2px">Mustard Aphid</div>
+          <div style="font-size:10.5px;color:var(--ag-text-muted)">Sap-sucking colony</div>
+        </div>
+
+        <!-- 8. Potato: Potato Late Blight -->
+        <div class="pest-card-item" onclick="selectPestCard(this, 'potato_late_blight')">
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:18px">🥔</span>
+            <span style="font-size:10px;background:rgba(254,205,211,0.5);color:#be123c;padding:1px 6px;border-radius:4px;font-weight:700">Potato</span>
+          </div>
+          <div style="font-size:12px;font-weight:800;color:var(--ag-text-primary);margin-top:2px">Potato Late Blight</div>
+          <div style="font-size:10.5px;color:var(--ag-text-muted)">Water-soaked leaf necrosis</div>
         </div>
       </div>
 
@@ -656,6 +756,10 @@
             <option value="paddy">Paddy / Rice (धान)</option>
             <option value="cotton">Cotton (कपास)</option>
             <option value="maize">Maize (मक्का)</option>
+            <option value="sugarcane">Sugarcane (गन्ना)</option>
+            <option value="gram">Chickpea / Gram (चना)</option>
+            <option value="mustard">Mustard (सरसों)</option>
+            <option value="potato">Potato (आलू)</option>
           </select>
         </div>
         <div class="form-group full-width" style="display:none">
@@ -665,6 +769,10 @@
             <option value="pink_bollworm">Pink Bollworm - Cotton</option>
             <option value="fall_armyworm">Fall Armyworm - Maize</option>
             <option value="blast">Rice Blast - Paddy</option>
+            <option value="sugarcane_borer">Sugarcane Early Shoot Borer</option>
+            <option value="gram_pod_borer">Gram Pod Borer - Chickpea</option>
+            <option value="mustard_aphid">Mustard Aphid</option>
+            <option value="potato_late_blight">Potato Late Blight</option>
           </select>
         </div>
         <div class="form-group full-width">
