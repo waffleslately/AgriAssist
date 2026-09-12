@@ -1,4 +1,4 @@
-﻿// ===== API CLIENT =====
+// ===== API CLIENT =====
 const BASE = '';
 
 // Auth: Request OTP
@@ -61,11 +61,14 @@ async function apiOnboardPlot(payload) {
 
 // Drone: Direct Imagery & Patch Classification
 async function apiAnalyzeDroneImage(payload) {
-  const res = await fetch(`${BASE}/api/v1/drone/analyze-image`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
+  let options = { method: 'POST' };
+  if (payload instanceof FormData) {
+    options.body = payload;
+  } else {
+    options.headers = { 'Content-Type': 'application/json' };
+    options.body = JSON.stringify(payload);
+  }
+  const res = await fetch(`${BASE}/api/v1/drone/analyze-image`, options);
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || `HTTP ${res.status}`);

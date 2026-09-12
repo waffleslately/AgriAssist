@@ -1,5 +1,6 @@
-﻿import uuid
+import uuid
 from datetime import datetime, timezone
+from typing import Dict, Any
 from sqlalchemy import String, Numeric, DateTime, ForeignKey, Text, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from geoalchemy2 import Geometry
@@ -47,3 +48,19 @@ class PlotPatch(Base):
     )
 
     drone_survey = relationship("DroneSurvey", back_populates="patches")
+
+
+class DroneScan(Base):
+    __tablename__ = "drone_scans"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    plot_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("plots.id", ondelete="CASCADE"), nullable=False, index=True)
+    scan_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    result_json: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    plot = relationship("Plot")

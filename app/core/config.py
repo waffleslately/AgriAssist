@@ -53,5 +53,8 @@ class Settings(BaseSettings):
     FIREBASE_APP_ID: str = ""
     FIREBASE_MESSAGING_SENDER_ID: str = ""
 
+    # Roboflow (Pretrained Weed Detection)
+    ROBOFLOW_API_KEY: str = ""
+
 
 settings = Settings()

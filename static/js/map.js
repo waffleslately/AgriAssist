@@ -167,53 +167,121 @@ window.setBoundaryCoordinates = function(coords) {
   document.getElementById('clear-btn').style.display = 'inline-flex';
 };
 
-// ===== RENDER DETECTED DRONE PATCHES ON MAP =====
-window.renderDronePatchesOnMap = function(patches) {
+// ===== RENDER INTERACTIVE DRONE NDVI GRID & WEED MARKERS ON MAP =====
+window.renderDronePatchesOnMap = function(data) {
   dronePatchesLayer.clearLayers();
-  if (!patches || patches.length === 0) return;
+  if (!data) return;
 
-  const patchColors = {
-    healthy_stand:  { color: '#16a34a', fill: '#22c55e' },
-    stressed_crop:  { color: '#ea580c', fill: '#f97316' },
-    weed_cluster:   { color: '#9333ea', fill: '#a855f7' },
-    bare_soil_gap:  { color: '#ca8a04', fill: '#eab308' }
-  };
+  // Open Map modal if not open
+  if (window.openMapModal && document.getElementById('map-modal-overlay').style.display === 'none') {
+    window.openMapModal();
+  }
 
+  const grid = data.grid || (data.healthy || data.moderate || data.stressed_or_bare ? data : null);
   const bounds = [];
 
-  patches.forEach(p => {
-    const geom = p.geojson_geometry;
-    if (!geom || !geom.coordinates) return;
+  // 1. If grid format is provided (healthy, moderate, stressed_or_bare, weed_cluster)
+  if (grid) {
+    const categories = [
+      { key: 'healthy', name: 'HEALTHY CANOPY', color: '#16a34a', fill: '#22c55e', defaultAction: 'High chlorophyll vigor. Maintain standard irrigation & nitrogen management.' },
+      { key: 'moderate', name: 'MODERATE VIGOR', color: '#ca8a04', fill: '#eab308', defaultAction: 'Moderate vigor. Watch for early moisture stress or micronutrient deficit.' },
+      { key: 'stressed_or_bare', name: 'STRESSED / BARE SOIL', color: '#dc2626', fill: '#ef4444', defaultAction: 'Investigate for nitrogen deficiency, waterlogging, or poor stand germination.' }
+    ];
 
-    const ring = geom.coordinates[0];
-    const latlngs = ring.map(c => [c[1], c[0]]);
-    const styling = patchColors[p.patch_type] || { color: '#3b82f6', fill: '#60a5fa' };
+    categories.forEach(cat => {
+      const cells = grid[cat.key] || [];
+      cells.forEach(cell => {
+        let rectBounds = cell.bounds;
+        if (!rectBounds && cell.lat && cell.lon) {
+          const delta = 0.000045;
+          rectBounds = [[cell.lat - delta, cell.lon - delta], [cell.lat + delta, cell.lon + delta]];
+        }
+        if (!rectBounds) return;
 
-    const poly = L.polygon(latlngs, {
-      color: styling.color,
-      fillColor: styling.fill,
-      fillOpacity: 0.55,
-      weight: 2
+        const rect = L.rectangle(rectBounds, {
+          color: cat.color,
+          fillColor: cat.fill,
+          fillOpacity: 0.65,
+          weight: 1.2
+        });
+
+        const actionText = cell.action || (cell.ndvi !== undefined ? `NDVI ${cell.ndvi.toFixed(2)} — ${cat.defaultAction}` : cat.defaultAction);
+        const popupHtml = `
+          <div style="font-family:Inter,sans-serif;font-size:12px;min-width:190px">
+            <div style="font-weight:800;font-size:13px;color:${cat.color};margin-bottom:4px">
+              ● ${cat.name}
+            </div>
+            ${cell.ndvi !== undefined ? `<div style="margin-bottom:3px"><strong>NDVI Value:</strong> <span style="font-weight:700;color:${cat.color}">${cell.ndvi.toFixed(2)}</span></div>` : ''}
+            <div style="color:#64748b;font-size:10px;margin-bottom:6px">GPS: ${cell.lat.toFixed(5)}, ${cell.lon.toFixed(5)}</div>
+            <div style="background:#f8fafc;border-left:3px solid ${cat.color};padding:6px 8px;font-size:11px;color:#1e293b;border-radius:0 4px 4px 0">
+              💡 <strong>Action:</strong> ${actionText}
+            </div>
+          </div>
+        `;
+        rect.bindPopup(popupHtml);
+        dronePatchesLayer.addLayer(rect);
+        bounds.push(rectBounds[0]);
+        bounds.push(rectBounds[1]);
+      });
     });
 
-    const popupHtml = `
-      <div style="min-width:180px">
-        <div class="patch-popup-title" style="color:${styling.color}">
-          ${p.patch_type.replace('_',' ').toUpperCase()}
-        </div>
-        <div class="patch-popup-item"><strong>Severity:</strong> ${p.severity_level}</div>
-        <div class="patch-popup-item"><strong>Area:</strong> ${p.area_acres} acres (${p.percentage_of_plot}%)</div>
-        ${p.mean_vigor_score ? `<div class="patch-popup-item"><strong>Mean Vigor:</strong> ${p.mean_vigor_score}</div>` : ''}
-        <div class="patch-popup-item" style="margin-top:4px;color:#475569">${p.notes}</div>
-      </div>
-    `;
-    poly.bindPopup(popupHtml);
-    dronePatchesLayer.addLayer(poly);
-    latlngs.forEach(pt => bounds.push(pt));
-  });
+    // Render Weed Cluster Purple Markers
+    const weeds = grid.weed_cluster || [];
+    weeds.forEach(w => {
+      if (!w.lat || !w.lon) return;
 
-  if (bounds.length > 0) {
-    map.fitBounds(bounds, { padding: [40, 40] });
+      const weedIcon = L.divIcon({
+        className: 'weed-marker-icon',
+        html: `<div style="background:#9333ea;color:#fff;border:2px solid #ffffff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.35);font-size:13px;font-weight:bold" title="Weed Cluster">
+                 🌿
+               </div>`,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+
+      const marker = L.marker([w.lat, w.lon], { icon: weedIcon });
+      const confPct = Math.round((w.confidence || 0.85) * 100);
+      const weedAction = w.action || `Weed cluster detected (${confPct}% confidence). Apply targeted herbicide spot-spraying or mechanical inter-row weeding.`;
+
+      const popupHtml = `
+        <div style="font-family:Inter,sans-serif;font-size:12px;min-width:190px">
+          <div style="font-weight:800;font-size:13px;color:#9333ea;margin-bottom:4px">
+            🌿 WEED CLUSTER
+          </div>
+          <div style="margin-bottom:3px"><strong>Confidence Score:</strong> <span style="font-weight:700;color:#9333ea">${confPct}%</span></div>
+          <div style="color:#64748b;font-size:10px;margin-bottom:6px">GPS: ${w.lat.toFixed(5)}, ${w.lon.toFixed(5)}</div>
+          <div style="background:#faf5ff;border-left:3px solid #9333ea;padding:6px 8px;font-size:11px;color:#581c87;border-radius:0 4px 4px 0">
+            💡 <strong>Action:</strong> ${weedAction}
+          </div>
+        </div>
+      `;
+      marker.bindPopup(popupHtml);
+      dronePatchesLayer.addLayer(marker);
+      bounds.push([w.lat, w.lon]);
+    });
+  } else if (Array.isArray(data)) {
+    // Legacy patches array fallback
+    const patchColors = {
+      healthy_stand:  { color: '#16a34a', fill: '#22c55e' },
+      stressed_crop:  { color: '#ea580c', fill: '#f97316' },
+      weed_cluster:   { color: '#9333ea', fill: '#a855f7' },
+      bare_soil_gap:  { color: '#ca8a04', fill: '#eab308' }
+    };
+    data.forEach(p => {
+      const geom = p.geojson_geometry;
+      if (!geom || !geom.coordinates) return;
+      const ring = geom.coordinates[0];
+      const latlngs = ring.map(c => [c[1], c[0]]);
+      const styling = patchColors[p.patch_type] || { color: '#3b82f6', fill: '#60a5fa' };
+      const poly = L.polygon(latlngs, { color: styling.color, fillColor: styling.fill, fillOpacity: 0.55, weight: 2 });
+      poly.bindPopup(`<b>${p.patch_type}</b><br>${p.notes}`);
+      dronePatchesLayer.addLayer(poly);
+      latlngs.forEach(pt => bounds.push(pt));
+    });
+  }
+
+  if (bounds.length > 0 && map && map.fitBounds) {
+    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 18 });
   }
 };
 

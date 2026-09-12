@@ -571,8 +571,9 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
 window.handleDroneFileUpload = function(e) {
   const file = e.target.files[0];
   if (file) {
+    window._selectedDroneFile = file;
     const badge = document.getElementById('file-uploaded-badge');
-    badge.textContent = `📁 ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
+    badge.textContent = `📷 ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
     badge.style.display = 'inline-block';
   }
 };
@@ -599,28 +600,45 @@ window.applyDronePreset = function(preset) {
 window.triggerDroneAnalysis = async function() {
   const crop = document.getElementById('drone-crop').value;
   const sensor = document.getElementById('drone-sensor').value;
-  const altitude = parseFloat(document.getElementById('drone-altitude').value);
+  const altitude = parseFloat(document.getElementById('drone-altitude').value) || 35.0;
   const acres = parseFloat(document.getElementById('drone-acres').value) || 3.5;
 
-  const payload = {
-    crop_name: crop,
-    total_area_acres: acres,
-    sensor_type: sensor,
-    flight_altitude_meters: altitude,
-    plot_coordinates: window.currentCoords
-  };
+  // Check if a specific land is selected
+  const landSelect = document.getElementById('drone-target-land');
+  let selectedPlotId = null;
+  if (landSelect && landSelect.value !== '' && typeof currentFarmer !== 'undefined' && currentFarmer && currentFarmer.plots) {
+    const p = currentFarmer.plots[landSelect.value];
+    if (p) selectedPlotId = p.plot_id || p.id;
+  }
 
-  showLoading('Analyzing Aerial Drone Imagery & Canopy Patches...');
+  // Build FormData for multipart file upload
+  const formData = new FormData();
+  if (window._selectedDroneFile) {
+    formData.append('file', window._selectedDroneFile);
+  }
+  formData.append('sensor_type', sensor);
+  formData.append('crop_name', crop);
+  formData.append('flight_altitude_meters', altitude);
+  formData.append('total_area_acres', acres);
+  if (selectedPlotId) {
+    formData.append('plot_id', selectedPlotId);
+  }
+  if (window.currentCoords && window.currentCoords.length >= 3) {
+    formData.append('plot_coordinates', JSON.stringify(window.currentCoords));
+  }
+
+  showLoading('Analyzing Aerial Drone Imagery & Computing NDVI Grid...');
   try {
-    const data = await apiAnalyzeDroneImage(payload);
+    const data = await apiAnalyzeDroneImage(formData);
     window._latestDroneData = data;
     hideLoading();
     if (window.renderDronePatchesOnMap) {
-      window.renderDronePatchesOnMap(data.patches);
+      window.renderDronePatchesOnMap(data);
     }
     renderDroneResults(data);
   } catch (e) {
     hideLoading();
+    // Render specific validation error message (e.g. 400 bad request details)
     renderError(e.message);
   }
 };
@@ -969,9 +987,16 @@ function renderDroneResults(data) {
 
   const dgca = data.dgca_precision_mission;
   const counts = {};
-  (data.patches || []).forEach(p => {
-    counts[p.patch_type] = (counts[p.patch_type] || 0) + 1;
-  });
+  if (data.grid) {
+    counts['healthy_stand'] = (data.grid.healthy || []).length;
+    counts['moderate_vigor'] = (data.grid.moderate || []).length;
+    counts['stressed_crop'] = (data.grid.stressed_or_bare || []).length;
+    counts['weed_cluster'] = (data.grid.weed_cluster || []).length;
+  } else {
+    (data.patches || []).forEach(p => {
+      counts[p.patch_type] = (counts[p.patch_type] || 0) + 1;
+    });
+  }
 
   el.innerHTML = `
     <div class="result-card">
