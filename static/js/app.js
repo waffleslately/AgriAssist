@@ -147,6 +147,138 @@ window.prepareAddNewPlot = function() {
   if (tc) tc.classList.add('active');
 };
 
+
+// ===== MULTI-LAND STAGING BATCH STATE =====
+let stagedLands = [];
+
+window.stageCurrentPlot = function() {
+  if (!window.currentCoords) {
+    alert('Please draw the boundary for this land on the map first.');
+    return;
+  }
+
+  const isManual = document.getElementById('manual-override-toggle').checked;
+  const nameInput = document.getElementById('plot-name');
+  const cropInput = document.getElementById('crop-name');
+  const varietyInput = document.getElementById('variety');
+  const seasonInput = document.getElementById('season');
+  const sowInput = document.getElementById('sowing-date');
+  const irrInput = document.getElementById('irrigation');
+  const soilInput = document.getElementById('soil-texture');
+
+  const plotName = (nameInput && nameInput.value.trim()) || (`Field ${stagedLands.length + 1} (${cropInput.value})`);
+
+  const payload = {
+    phone_number: document.getElementById('phone').value.trim(),
+    farmer_name:  document.getElementById('farmer-name').value.trim(),
+    state:        document.getElementById('state').value,
+    district:     document.getElementById('district').value.trim(),
+    village:      document.getElementById('village').value.trim() || null,
+    language:     document.getElementById('language').value,
+    plot_name:    plotName,
+    boundary:     { type: 'Polygon', coordinates: [window.currentCoords] },
+    crop_name:    cropInput.value,
+    variety:      varietyInput.value.trim() || null,
+    season:       seasonInput.value,
+    sowing_date:  sowInput.value,
+    irrigation_source: irrInput.value,
+    soil_texture: soilInput.value,
+    manual_override_enabled: isManual,
+    manual_soil_n: isManual ? parseFloat(document.getElementById('manual-n').value) : null,
+    manual_soil_p: isManual ? parseFloat(document.getElementById('manual-p').value) : null,
+    manual_soil_k: isManual ? parseFloat(document.getElementById('manual-k').value) : null,
+    manual_soil_ph: isManual ? parseFloat(document.getElementById('manual-ph').value) : null,
+    manual_soil_oc: isManual ? parseFloat(document.getElementById('manual-oc').value) : null,
+    manual_rain_48h_mm: isManual ? parseFloat(document.getElementById('manual-rain').value) : null
+  };
+
+  stagedLands.push(payload);
+  renderStagedLandsQueue();
+
+  // Reset for next field in the batch
+  const nextNum = (currentFarmer.plots ? currentFarmer.plots.length : 0) + stagedLands.length + 1;
+  if (nameInput) {
+    nameInput.value = `Field ${nextNum}`;
+    nameInput.focus();
+  }
+
+  // Clear map drawn layer
+  if (window.drawnItems) window.drawnItems.clearLayers();
+  window.currentCoords = null;
+  if (typeof updateBoundaryStatus === 'function') updateBoundaryStatus(false);
+  const submitBtn = document.getElementById('submit-btn');
+  if (submitBtn) submitBtn.disabled = true;
+  const stageBtn = document.getElementById('stage-btn');
+  if (stageBtn) stageBtn.disabled = true;
+  const clearBtn = document.getElementById('clear-btn');
+  if (clearBtn) clearBtn.style.display = 'none';
+
+  alert(`Land "${plotName}" added to batch! You can now draw another land on the map or click "Save All Lands at Same Time".`);
+};
+
+function renderStagedLandsQueue() {
+  const wrap = document.getElementById('staged-queue-wrap');
+  const list = document.getElementById('staged-list');
+  const count = document.getElementById('staged-count');
+  if (!wrap || !list) return;
+
+  if (stagedLands.length === 0) {
+    wrap.style.display = 'none';
+    return;
+  }
+
+  wrap.style.display = 'block';
+  if (count) count.textContent = `${stagedLands.length} Land${stagedLands.length > 1 ? 's' : ''}`;
+
+  list.innerHTML = stagedLands.map((item, idx) => `
+    <div class="staged-item">
+      <div class="staged-item-info">
+        <span class="staged-item-name">📍 ${item.plot_name}</span>
+        <span class="staged-item-sub">${item.crop_name.toUpperCase()} · ${item.season}</span>
+      </div>
+      <button type="button" class="staged-item-del" onclick="removeStagedLand(${idx})" title="Remove this land">🗑</button>
+    </div>
+  `).join('');
+}
+
+window.removeStagedLand = function(idx) {
+  stagedLands.splice(idx, 1);
+  renderStagedLandsQueue();
+};
+
+window.saveAllStagedLands = async function() {
+  if (stagedLands.length === 0) {
+    alert('No lands in batch. Please draw a land and click "Add to Batch" first.');
+    return;
+  }
+
+  showLoading(`Saving ${stagedLands.length} Lands at the same time...`);
+  let lastAdvisoryData = null;
+  let savedCount = 0;
+
+  try {
+    for (const payload of stagedLands) {
+      const data = await apiOnboardPlot(payload);
+      lastAdvisoryData = data;
+      savedCount++;
+    }
+
+    const phone = stagedLands[0].phone_number;
+    stagedLands = [];
+    renderStagedLandsQueue();
+
+    hideLoading();
+    if (lastAdvisoryData) {
+      renderAdvisoryResults(lastAdvisoryData, 'hi');
+    }
+    await loadFarmerSession(phone);
+    alert(`Success! All ${savedCount} lands were saved at the same time into your farm profile.`);
+  } catch (e) {
+    hideLoading();
+    renderError('Batch save error: ' + e.message);
+  }
+};
+
 // ===== FARMER SESSION & PROFILES =====
 
 async function loadFarmerSession(phone) {

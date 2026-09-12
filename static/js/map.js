@@ -110,7 +110,10 @@ map.on(L.Draw.Event.CREATED, e => {
   map.fitBounds(e.layer.getBounds(), { padding: [40, 40] });
 
   updateBoundaryStatus(true);
-  document.getElementById('submit-btn').disabled = false;
+  const submitBtn = document.getElementById('submit-btn');
+  if (submitBtn) submitBtn.disabled = false;
+  const stageBtn = document.getElementById('stage-btn');
+  if (stageBtn) stageBtn.disabled = false;
   document.getElementById('clear-btn').style.display = 'inline-flex';
 });
 
@@ -119,7 +122,10 @@ document.getElementById('clear-btn').addEventListener('click', () => {
   drawnItems.clearLayers();
   window.currentCoords = null;
   updateBoundaryStatus(false);
-  document.getElementById('submit-btn').disabled = true;
+  const submitBtn = document.getElementById('submit-btn');
+  if (submitBtn) submitBtn.disabled = true;
+  const stageBtn = document.getElementById('stage-btn');
+  if (stageBtn) stageBtn.disabled = true;
   document.getElementById('clear-btn').style.display = 'none';
 });
 
@@ -152,7 +158,10 @@ window.setBoundaryCoordinates = function(coords) {
   map.fitBounds(polygon.getBounds(), { padding: [40, 40] });
 
   updateBoundaryStatus(true);
-  document.getElementById('submit-btn').disabled = false;
+  const submitBtn = document.getElementById('submit-btn');
+  if (submitBtn) submitBtn.disabled = false;
+  const stageBtn = document.getElementById('stage-btn');
+  if (stageBtn) stageBtn.disabled = false;
   document.getElementById('clear-btn').style.display = 'inline-flex';
 };
 

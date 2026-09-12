@@ -235,9 +235,26 @@
       </div>
       <button class="btn btn-clear" id="clear-btn" style="display:none">🗑 Clear Boundary</button>
 
-      <button class="btn btn-primary btn-full" id="submit-btn" disabled>
-        <span class="btn-icon">🚀</span> Generate Comprehensive Advisory
-      </button>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button type="button" class="btn btn-stage" id="stage-btn" style="flex:1" disabled onclick="stageCurrentPlot()">
+          <span class="btn-icon">➕</span> Add to Batch
+        </button>
+        <button type="button" class="btn btn-primary" id="submit-btn" style="flex:1" disabled>
+          <span class="btn-icon">🚀</span> Save & Advise
+        </button>
+      </div>
+
+      <!-- Multi-Land Staged Batch Container -->
+      <div class="staged-queue-wrap" id="staged-queue-wrap" style="display:none">
+        <div class="staged-queue-header">
+          <span class="staged-queue-title">Lands in Staging Batch</span>
+          <span class="staged-badge" id="staged-count">0 Lands</span>
+        </div>
+        <div class="staged-list" id="staged-list"></div>
+        <button type="button" class="btn btn-batch-save btn-full" onclick="saveAllStagedLands()">
+          <span class="btn-icon">💾</span> Save All Lands at Same Time
+        </button>
+      </div>
     </div>
 
     <!-- ─── TAB 2: DRONE IMAGERY & CROP PATCHES ─── -->
