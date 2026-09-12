@@ -1,4 +1,4 @@
-﻿from typing import List, Union
+from typing import List, Union
 from pydantic import AnyHttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -11,7 +11,7 @@ class Settings(BaseSettings):
         extra="ignore"
     )
 
-    PROJECT_NAME: str = "India Agri-Advisory Platform"
+    PROJECT_NAME: str = "AgriAssist"
     ENVIRONMENT: str = "development"
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = "dev-secret-key-change-in-production-1234567890"

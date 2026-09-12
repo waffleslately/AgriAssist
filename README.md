@@ -1,5 +1,4 @@
-HEAD
-﻿# India Agri-Advisory Platform (Backend & Frontend)
+# AgriAssist
 
 Production-grade, modular geospatial platform for **Soil, Crop, Drone & Pest Advisory** scoped specifically for Indian agriculture (ICAR, CIBRC, and DGCA standards).
 

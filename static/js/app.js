@@ -922,7 +922,7 @@ window.printAdvisorySlip = function() {
 };
 
 window.shareAdvisoryWhatsApp = function() {
-  const text = encodeURIComponent("🌾 Kisan Advisory Prescription:\n" + (document.getElementById('advisory-text') ? document.getElementById('advisory-text').textContent : ''));
+  const text = encodeURIComponent("🌾 AgriAssist Advisory Prescription:\n" + (document.getElementById('advisory-text') ? document.getElementById('advisory-text').textContent : ''));
   window.open("https://api.whatsapp.com/send?text=" + text, "_blank");
 };
 
