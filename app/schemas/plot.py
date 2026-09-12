@@ -72,3 +72,12 @@ class PlotOnboardRequest(BaseModel):
     season: str = Field(default="kharif", description="kharif, rabi, zaid")
     sowing_date: date = Field(..., description="Date crop was sown (YYYY-MM-DD)")
     target_yield_quintal_per_acre: Optional[float] = None
+    # Manual Farmer Overrides (when satellite/soil/weather data is unavailable or farmer inputs ground test values)
+    manual_override_enabled: Optional[bool] = False
+    manual_soil_n: Optional[float] = Field(default=None, description="Manual Available Nitrogen (kg/ha)")
+    manual_soil_p: Optional[float] = Field(default=None, description="Manual Available Phosphorus (kg/ha)")
+    manual_soil_k: Optional[float] = Field(default=None, description="Manual Available Potassium (kg/ha)")
+    manual_soil_ph: Optional[float] = Field(default=None, description="Manual Soil pH")
+    manual_soil_oc: Optional[float] = Field(default=None, description="Manual Organic Carbon (%)")
+    manual_rain_48h_mm: Optional[float] = Field(default=None, description="Manual Rainfall Observation for next 48h (mm)")
+
