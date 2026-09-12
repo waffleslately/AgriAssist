@@ -1,0 +1,249 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kisan Advisory Platform | किसान सलाह मंच</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <!-- Leaflet Draw CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <!-- App CSS -->
+  <link rel="stylesheet" href="/static/css/app.css"/>
+</head>
+<body>
+
+<!-- ========== HEADER ========== -->
+<header class="app-header">
+  <div class="header-inner">
+    <div class="header-logo">
+      <span class="logo-icon">🌾</span>
+      <div>
+        <div class="logo-title">Kisan Advisory Platform</div>
+        <div class="logo-sub">किसान सलाह मंच</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span class="badge badge-live" id="server-badge">● Connecting...</span>
+      <a href="/docs" target="_blank" class="btn btn-outline">API Docs</a>
+    </div>
+  </div>
+</header>
+
+<!-- ========== MAIN LAYOUT ========== -->
+<main class="app-main">
+
+  <!-- LEFT PANEL: Inputs -->
+  <aside class="panel panel-left">
+
+    <!-- TAB HEADERS -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="onboard">📍 Plot Onboarding</button>
+      <button class="tab-btn" data-tab="pest">🐛 Pest Control</button>
+    </div>
+
+    <!-- ─── TAB 1: PLOT ONBOARDING ─── -->
+    <div class="tab-content active" id="tab-onboard">
+
+      <div class="section-title">👤 Farmer Details</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="phone" placeholder="9876543210" value="9876543210"/>
+        </div>
+        <div class="form-group">
+          <label>Farmer Name</label>
+          <input type="text" id="farmer-name" placeholder="e.g. Harpreet Singh" value="Harpreet Singh"/>
+        </div>
+        <div class="form-group">
+          <label>State</label>
+          <select id="state">
+            <option value="Punjab">Punjab</option>
+            <option value="Maharashtra">Maharashtra</option>
+            <option value="Madhya Pradesh">Madhya Pradesh</option>
+            <option value="Andhra Pradesh">Andhra Pradesh</option>
+            <option value="Uttar Pradesh">Uttar Pradesh</option>
+            <option value="Rajasthan">Rajasthan</option>
+            <option value="Haryana">Haryana</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>District</label>
+          <input type="text" id="district" placeholder="e.g. Ludhiana" value="Ludhiana"/>
+        </div>
+        <div class="form-group">
+          <label>Village (optional)</label>
+          <input type="text" id="village" placeholder="Village name"/>
+        </div>
+        <div class="form-group">
+          <label>Advisory Language</label>
+          <select id="language">
+            <option value="hi">हिंदी (Hindi)</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:16px">🌱 Crop Details</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Crop Name</label>
+          <select id="crop-name">
+            <option value="wheat">Wheat (गेंहू)</option>
+            <option value="paddy">Paddy / Rice (धान)</option>
+            <option value="cotton">Cotton (कपास)</option>
+            <option value="maize">Maize (मक्का)</option>
+            <option value="soybean">Soybean (सोयाबीन)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Crop Variety (optional)</label>
+          <input type="text" id="variety" placeholder="e.g. HD-2967"/>
+        </div>
+        <div class="form-group">
+          <label>Season</label>
+          <select id="season">
+            <option value="rabi">Rabi (रबी)</option>
+            <option value="kharif">Kharif (खरीफ)</option>
+            <option value="zaid">Zaid (जायद)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Sowing Date</label>
+          <input type="date" id="sowing-date"/>
+        </div>
+        <div class="form-group">
+          <label>Irrigation Source</label>
+          <select id="irrigation">
+            <option value="borewell">Borewell / Tube Well</option>
+            <option value="canal">Canal (नहर)</option>
+            <option value="rainfed">Rainfed (वर्षाश्रित)</option>
+            <option value="drip">Drip / Sprinkler</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Soil Texture</label>
+          <select id="soil-texture">
+            <option value="clay_loam">Clay Loam</option>
+            <option value="black_cotton">Black Cotton</option>
+            <option value="alluvial">Alluvial (Domat)</option>
+            <option value="sandy">Sandy</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:16px">🗺️ Field Boundary</div>
+      <div class="map-instructions">
+        <span class="pill">Step 1</span> Click the <strong>✏️ Draw Polygon</strong> tool on the map
+        <br/>
+        <span class="pill">Step 2</span> Click to place each corner of your field
+        <br/>
+        <span class="pill">Step 3</span> Double-click to finish drawing
+      </div>
+      <div class="boundary-status" id="boundary-status">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="boundary-label">No boundary drawn yet</span>
+      </div>
+      <button class="btn btn-clear" id="clear-btn" style="display:none">🗑 Clear Boundary</button>
+
+      <button class="btn btn-primary btn-full" id="submit-btn" disabled>
+        <span class="btn-icon">🚀</span> Get Advisory
+      </button>
+    </div>
+
+    <!-- ─── TAB 2: PEST CONTROL ─── -->
+    <div class="tab-content" id="tab-pest">
+      <div class="section-title">🐛 Pest / Disease Diagnosis</div>
+      <p class="hint-text">Enter crop & pest details to get ICAR/CIBRC treatment recommendations and drone spraying parameters.</p>
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label>Crop</label>
+          <select id="pest-crop">
+            <option value="cotton">Cotton (कपास)</option>
+            <option value="maize">Maize (मक्का)</option>
+            <option value="paddy">Paddy / Rice (धान)</option>
+            <option value="wheat">Wheat (गेंहू)</option>
+          </select>
+        </div>
+        <div class="form-group full-width">
+          <label>Pest / Disease</label>
+          <select id="pest-key">
+            <option value="pink_bollworm">Pink Bollworm - Cotton</option>
+            <option value="whitefly">Whitefly - Cotton</option>
+            <option value="fall_armyworm">Fall Armyworm - Maize</option>
+            <option value="yellow_stem_borer">Yellow Stem Borer - Paddy</option>
+            <option value="blast">Rice Blast - Paddy</option>
+            <option value="yellow_rust">Yellow Rust - Wheat</option>
+          </select>
+        </div>
+        <div class="form-group full-width">
+          <label>Estimated Infestation Severity (%)</label>
+          <div class="range-wrap">
+            <input type="range" id="severity-slider" min="0" max="100" value="12" oninput="document.getElementById('severity-val').textContent=this.value+'%'"/>
+            <span id="severity-val" class="range-label">12%</span>
+          </div>
+        </div>
+        <div class="form-group full-width">
+          <label>Drone Spray Prescription</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="drone-spray" checked/>
+            <span class="slider-toggle"></span>
+            <span style="margin-left:8px">Generate DGCA Drone Mission</span>
+          </label>
+        </div>
+      </div>
+      <button class="btn btn-pest btn-full" id="pest-btn">
+        <span class="btn-icon">🔍</span> Diagnose & Prescribe
+      </button>
+    </div>
+  </aside>
+
+  <!-- CENTRE: Map -->
+  <section class="panel panel-map">
+    <div id="map"></div>
+    <div class="map-hint-bar">
+      <span>🛰️ Satellite View</span>
+      <span id="map-coords">Move cursor over map</span>
+    </div>
+  </section>
+
+  <!-- RIGHT PANEL: Results -->
+  <aside class="panel panel-right" id="results-panel">
+    <div class="results-placeholder" id="results-placeholder">
+      <div class="placeholder-icon">🌾</div>
+      <div class="placeholder-title">Advisory results will appear here</div>
+      <div class="placeholder-sub">Draw your field boundary on the map and click <strong>Get Advisory</strong></div>
+    </div>
+    <div class="results-content" id="results-content" style="display:none"></div>
+  </aside>
+
+</main>
+
+<!-- ========== LOADING OVERLAY ========== -->
+<div class="loading-overlay" id="loading-overlay" style="display:none">
+  <div class="loading-card">
+    <div class="spinner"></div>
+    <div class="loading-steps" id="loading-steps">
+      <div class="loading-step active" id="ls-1">🛰️ Fetching Sentinel-2 satellite data...</div>
+      <div class="loading-step" id="ls-2">🌱 Querying nearest Soil Health Card...</div>
+      <div class="loading-step" id="ls-3">🌧️ Checking 7-day rainfall forecast...</div>
+      <div class="loading-step" id="ls-4">🧮 Computing fertilizer recommendations...</div>
+      <div class="loading-step" id="ls-5">📝 Generating localized advisory card...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet Draw JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<!-- App JS -->
+<script src="/static/js/map.js"></script>
+<script src="/static/js/api.js"></script>
+<script src="/static/js/app.js"></script>
+
+</body>
+</html>
