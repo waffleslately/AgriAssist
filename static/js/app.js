@@ -76,21 +76,36 @@ function renderMyFarms(farmer) {
 window.loadPlotFromFarms = function(idx) {
   if (!currentFarmer.plots || !currentFarmer.plots[idx]) return;
   const p = currentFarmer.plots[idx];
+
+  // Populate form fields
+  const nameInput = document.getElementById('plot-name');
+  if (nameInput) nameInput.value = p.plot_name || '';
+
   const cropSel = document.getElementById('crop-name');
   if (cropSel) cropSel.value = p.crop_name || 'wheat';
+
   if (p.sowing_date) {
     const d = document.getElementById('sowing-date');
     if (d) d.value = p.sowing_date;
   }
-  if (p.centroid && window.map) {
+
+  // Restore boundary on map if stored, else focus centroid
+  if (p.coordinates && window.setBoundaryCoordinates) {
+    window.setBoundaryCoordinates(p.coordinates);
+  } else if (p.centroid && window.map) {
     window.map.setView([p.centroid.lat, p.centroid.lng], 15);
   }
+
+  // Sync the saved-plots dropdown
+  const select = document.getElementById('saved-plots-select');
+  if (select) select.value = idx;
+
   // Switch to Plot Onboarding tab
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  const t = document.querySelector('[data-tab="plots"]');
+  const t = document.querySelector('[data-tab="onboard"]');
   if (t) t.classList.add('active');
-  const tc = document.getElementById('tab-plots');
+  const tc = document.getElementById('tab-onboard');
   if (tc) tc.classList.add('active');
 };
 
@@ -129,11 +144,8 @@ async function loadFarmerSession(phone) {
 }
 
 window.loadSelectedPlot = function(idx) {
-  if (idx === '' || !currentFarmer.plots[idx]) return;
-  const p = currentFarmer.plots[idx];
-  document.getElementById('crop-name').value = p.crop_name || 'wheat';
-  if (p.sowing_date) document.getElementById('sowing-date').value = p.sowing_date;
-  if (p.centroid) map.setView([p.centroid.lat, p.centroid.lng], 15);
+  if (idx === '') return;
+  loadPlotFromFarms(parseInt(idx));
 };
 
 // ===== AUTH & OTP MODAL =====
@@ -250,7 +262,7 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
     district:     document.getElementById('district').value.trim(),
     village:      document.getElementById('village').value.trim() || null,
     language:     document.getElementById('language').value,
-    plot_name:    'Main Field (' + document.getElementById('crop-name').value + ')',
+    plot_name:    (document.getElementById('plot-name') && document.getElementById('plot-name').value.trim()) || ('Field ' + (currentFarmer.plots ? currentFarmer.plots.length + 1 : 1) + ' (' + document.getElementById('crop-name').value + ')'),
     boundary:     { type: 'Polygon', coordinates: [window.currentCoords] },
     crop_name:    document.getElementById('crop-name').value,
     variety:      document.getElementById('variety').value.trim() || null,
@@ -267,12 +279,19 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
     manual_rain_48h_mm: isManual ? parseFloat(document.getElementById('manual-rain').value) : null
   };
 
-  showLoading('Generating Comprehensive Agricultural Advisory...');
+    showLoading('Generating Comprehensive Agricultural Advisory...');
   try {
     const data = await apiOnboardPlot(payload);
     hideLoading();
     renderAdvisoryResults(data, payload.language);
     await loadFarmerSession(payload.phone_number);
+
+    // Auto-prepare plot name for the next field so farmer can easily add multiple plots
+    const nameInput = document.getElementById('plot-name');
+    if (nameInput) {
+      const nextNum = (currentFarmer.plots ? currentFarmer.plots.length : 0) + 1;
+      nameInput.value = `Field ${nextNum}`;
+    }
   } catch (e) {
     hideLoading();
     renderError(e.message);

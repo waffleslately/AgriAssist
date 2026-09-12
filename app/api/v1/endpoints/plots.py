@@ -184,9 +184,10 @@ async def onboard_plot_pipeline(
             "sowing_date": str(payload.sowing_date),
             "stage": plan["crop_stage"],
             "mean_ndvi": sat_data.get("mean_ndvi", 0.55),
-            "centroid": {"lat": round(lat, 5), "lng": round(lng, 5)}
+            "centroid": {"lat": round(lat, 5), "lng": round(lng, 5)},
+            "coordinates": coords
         }
-        # Avoid duplicate plot names
+        # Avoid duplicate plot names (update if same name, else append as new plot)
         FARMER_STORE[phone]["plots"] = [
             p for p in FARMER_STORE[phone]["plots"] if p.get("plot_name") != payload.plot_name
         ]

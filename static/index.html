@@ -117,6 +117,10 @@
 
       <div class="section-title" style="margin-top:14px">🌱 Crop & Management</div>
       <div class="form-grid">
+        <div class="form-group" style="grid-column: 1 / -1">
+          <label>Plot / Field Name (e.g. North Khet, Khasra 42)</label>
+          <input type="text" id="plot-name" placeholder="e.g. North Khet / Khet 1" value="Field 1" style="font-weight:600"/>
+        </div>
         <div class="form-group">
           <label>Crop Name</label>
           <select id="crop-name" class="form-select">
@@ -377,7 +381,7 @@
     </div>
   </section>
 
-  <!-- RIGHT PANEL: Dynamic Results -->
+  <!-- RIGHT PANEL: Dynamic Results & My Farms -->
   <aside class="panel panel-right" id="results-panel">
     <div class="results-placeholder" id="results-placeholder">
       <div class="placeholder-icon">🌾</div>
@@ -387,30 +391,29 @@
       </div>
     </div>
     <div class="results-content" id="results-content" style="display:none"></div>
-  </aside>
 
-
-<!-- ====== MY FARMS DASHBOARD SECTION ====== -->
-<section class="my-farms-section" id="my-farms-section">
-  <div class="my-farms-header">
-    <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:16px">🌾</span>
-      <div>
-        <div class="my-farms-title" id="mf-farmer-name">My Farms Dashboard</div>
-        <div class="my-farms-sub" id="mf-farmer-loc">Loading farmer profile...</div>
+    <!-- ====== MY FARMS DASHBOARD SECTION ====== -->
+    <section class="my-farms-section" id="my-farms-section">
+      <div class="my-farms-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">🌾</span>
+          <div>
+            <div class="my-farms-title" id="mf-farmer-name">My Farms Dashboard</div>
+            <div class="my-farms-sub" id="mf-farmer-loc">Loading farmer profile...</div>
+          </div>
+        </div>
+        <div id="mf-plot-count" class="mf-plot-badge">0 Plots</div>
       </div>
-    </div>
-    <div id="mf-plot-count" class="mf-plot-badge">0 Plots</div>
-  </div>
-  <div id="my-farms-list" class="my-farms-list">
-    <div class="mf-empty">No plots saved yet.<br>Complete Plot Onboarding to save your first field.</div>
-  </div>
-  <div class="my-farms-legend">
-    <span class="mf-legend-dot" style="background:#22c55e"></span> Healthy
-    <span class="mf-legend-dot" style="background:#f59e0b;margin-left:8px"></span> Moderate
-    <span class="mf-legend-dot" style="background:#ef4444;margin-left:8px"></span> Stressed
-  </div>
-</section>
+      <div id="my-farms-list" class="my-farms-list">
+        <div class="mf-empty">No plots saved yet.<br>Complete Plot Onboarding to save your first field.</div>
+      </div>
+      <div class="my-farms-legend">
+        <span class="mf-legend-dot" style="background:#22c55e"></span> Healthy
+        <span class="mf-legend-dot" style="background:#f59e0b;margin-left:8px"></span> Moderate
+        <span class="mf-legend-dot" style="background:#ef4444;margin-left:8px"></span> Stressed
+      </div>
+    </section>
+  </aside>
 </main>
 
 <!-- ========== FARMER AUTHENTICATION & OTP MODAL ========== -->
