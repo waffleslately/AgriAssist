@@ -1,4 +1,60 @@
 // ===== FIREBASE PHONE AUTH — AgriAssist =====
+
+// ── DEV BYPASS: Auto-login on localhost (skips Firebase OTP entirely) ──────
+(function devBypass() {
+  const isLocal = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+  if (!isLocal) return; // Only runs locally
+
+  async function doDevLogin() {
+    const DEV_TOKEN = 'dev-localhost-token';
+    const DEV_PHONE = '9876543210';
+
+    // Set session in localStorage
+    localStorage.setItem('kisan_token', DEV_TOKEN);
+    localStorage.setItem('kisan_phone', DEV_PHONE);
+
+    // Fetch farmer data from backend
+    try {
+      const res = await fetch(`/api/v1/auth/me?phone=${DEV_PHONE}`, {
+        headers: { 'Authorization': `Bearer ${DEV_TOKEN}` }
+      });
+      const farmer = res.ok ? await res.json() : {
+        name: 'Harpreet Singh', phone_number: DEV_PHONE,
+        state: 'Punjab', district: 'Ludhiana', village: 'Gill', plots: []
+      };
+
+      window._authPhone  = DEV_PHONE;
+      window._authFarmer = farmer;
+
+      // Hide auth gate overlay if it exists
+      const gate = document.getElementById('auth-gate');
+      if (gate) gate.style.display = 'none';
+
+      // Fire auth success event — app.js listens for this
+      window.dispatchEvent(new CustomEvent('agri-auth-success', {
+        detail: { access_token: DEV_TOKEN, phone_number: DEV_PHONE, farmer }
+      }));
+
+      console.log('[DevBypass] ✅ Auto-logged in as', farmer.name, '— localhost mode');
+    } catch (e) {
+      console.warn('[DevBypass] Backend unreachable, firing with defaults:', e);
+      window.dispatchEvent(new CustomEvent('agri-auth-success', {
+        detail: { access_token: 'dev-localhost-token', phone_number: '9876543210',
+          farmer: { name: 'Harpreet Singh', phone_number: '9876543210', state: 'Punjab', district: 'Ludhiana', village: 'Gill', plots: [] }
+        }
+      }));
+    }
+  }
+
+  // Wait for DOM + all scripts to load so app.js listener is attached
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', doDevLogin);
+  } else {
+    setTimeout(doDevLogin, 0); // Already loaded — run async
+  }
+})();
+
+
 // Uses Firebase Web SDK v10 (modular ESM via CDN compat shim).
 // All OTP generation + SMS sending is 100% handled by Firebase's backend.
 // We never generate, mock, or log any OTP value.
@@ -8,7 +64,7 @@ import { getAuth, RecaptchaVerifier,
          signInWithPhoneNumber, onAuthStateChanged }
                                                from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
-// ── DOM refs ──────────────────────────────────────────────────────────────
+// ── DOM refs (may be null when auth-gate is not rendered in HTML) ─────────
 const gate       = document.getElementById('auth-gate');
 const stepPhone  = document.getElementById('auth-step-phone');
 const stepOtp    = document.getElementById('auth-step-otp');
@@ -25,17 +81,20 @@ let _resendTimer = null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function showMsg(text, isError = false) {
+  if (!msgEl) return;
   msgEl.textContent = text;
   msgEl.className   = 'ag-msg ' + (isError ? 'ag-msg-error' : 'ag-msg-info');
   msgEl.style.display = text ? 'block' : 'none';
 }
 
 function setBusy(btn, busy, label) {
+  if (!btn) return;
   btn.disabled    = busy;
   btn.textContent = busy ? '⏳ Please wait…' : label;
 }
 
 function startResendTimer(seconds = 60) {
+  if (!resendBtn || !timerEl) return;
   resendBtn.style.display = 'none';
   let s = seconds;
   timerEl.style.display = 'inline';
@@ -201,6 +260,13 @@ async function checkExistingSession() {
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 (async function bootstrap() {
+  // Skip Firebase entirely on localhost (handled by devBypass above)
+  const isLocal = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+  if (isLocal) return;
+
+  // On production: gate element must exist
+  if (!gate) return;
+
   // 1. Check if already logged in
   if (await checkExistingSession()) {
     gate.style.display = 'none';

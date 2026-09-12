@@ -1,6 +1,42 @@
-/* ===== RESET & MODERN DESIGN TOKENS ===== */
+/* ===== DYNAMIC COLOR SYSTEM (LIGHT & NEON DARK) ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
+  --ag-bg: #f3f7f4;
+  --ag-bg-mesh: radial-gradient(circle at 12% 18%, rgba(82, 183, 136, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 88% 82%, rgba(233, 196, 106, 0.1) 0%, transparent 45%),
+                linear-gradient(135deg, rgba(240, 253, 244, 0.5) 0%, rgba(254, 250, 224, 0.25) 100%);
+  --ag-spore-color: #52b788;
+  
+  --ag-text-primary: #1e293b;
+  --ag-text-muted: #64748b;
+  --ag-heading: #0f2d1e;
+
+  --ag-header-bg: linear-gradient(90deg, #1b4332 0%, #2d6a4f 60%, #1e3f30 100%);
+  --ag-header-border: rgba(233, 196, 106, 0.4);
+
+  --ag-surface: #ffffff;
+  --ag-surface-card: rgba(255, 255, 255, 0.95);
+  --ag-border: #d1e7dd;
+  --ag-border-glow: transparent;
+
+  --ag-primary: #2d6a4f;
+  --ag-primary-glow: rgba(45, 106, 79, 0.3);
+  --ag-sprout: #52b788;
+  --ag-wheat: #e9c46a;
+
+  /* Analytical Graph Colors */
+  --chart-blue-primary: #2563eb;
+  --chart-blue-bg: #eff6ff;
+  --chart-blue-glow: none;
+
+  --chart-green-primary: #16a34a;
+  --chart-green-bg: #f0fdf4;
+  --chart-green-glow: none;
+
+  --chart-red-primary: #dc2626;
+  --chart-red-bg: #fef2f2;
+  --chart-red-glow: none;
+
   --green:      #16a34a;
   --green-light:#dcfce7;
   --green-dark: #14532d;
@@ -24,16 +60,87 @@
   --gray-800:   #1e293b;
   --gray-900:   #0f172a;
   --header-h:   58px;
-  --panel-left-w: 340px;
-  --panel-right-w: 370px;
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --panel-left-w: 480px;
+  --panel-right-w: 1fr;
+  --font: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --radius:     10px;
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-pill: 9999px;
   --shadow-sm:  0 1px 3px rgba(0,0,0,.08);
   --shadow-md:  0 4px 14px rgba(0,0,0,.10);
   --shadow-lg:  0 10px 25px rgba(0,0,0,.18);
 }
 
-body { font-family: var(--font); background: var(--gray-100); color: var(--gray-800); height: 100vh; overflow: hidden; }
+/* ===== CYBER NEON DARK THEME OVERRIDES ===== */
+[data-theme="dark"] {
+  --ag-bg: #050a07;
+  --ag-bg-mesh: radial-gradient(circle at 10% 20%, rgba(0, 255, 136, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(0, 240, 255, 0.08) 0%, transparent 45%),
+                linear-gradient(135deg, #050a07 0%, #08120c 100%);
+  --ag-spore-color: #00ff88;
+
+  --ag-text-primary: #e2e8f0;
+  --ag-text-muted: #94a3b8;
+  --ag-heading: #00ff88;
+
+  --ag-header-bg: linear-gradient(90deg, #040806 0%, #08160f 60%, #050d09 100%);
+  --ag-header-border: #00ff88;
+
+  --ag-surface: #0a130e;
+  --ag-surface-card: rgba(10, 19, 14, 0.88);
+  --ag-border: rgba(0, 255, 136, 0.22);
+  --ag-border-glow: 0 0 15px rgba(0, 255, 136, 0.12);
+
+  --ag-primary: #00ff88;
+  --ag-primary-glow: 0 0 16px rgba(0, 255, 136, 0.5);
+  --ag-sprout: #00ff88;
+  --ag-wheat: #ffd166;
+
+  /* Neon Cyber Colors */
+  --chart-blue-primary: #00f0ff;
+  --chart-blue-bg: rgba(0, 240, 255, 0.08);
+  --chart-blue-glow: drop-shadow(0 0 6px rgba(0, 240, 255, 0.8));
+
+  --chart-green-primary: #00ff88;
+  --chart-green-bg: rgba(0, 255, 136, 0.08);
+  --chart-green-glow: drop-shadow(0 0 6px rgba(0, 255, 136, 0.8));
+
+  --chart-red-primary: #ff2a5f;
+  --chart-red-bg: rgba(255, 42, 95, 0.08);
+  --chart-red-glow: drop-shadow(0 0 6px rgba(255, 42, 95, 0.8));
+
+  --gray-50:    #050a07;
+  --gray-100:   #08120c;
+  --gray-200:   rgba(0, 255, 136, 0.2);
+  --gray-300:   rgba(0, 255, 136, 0.35);
+  --gray-600:   #94a3b8;
+  --gray-700:   #cbd5e1;
+  --gray-800:   #e2e8f0;
+  --gray-900:   #f8fafc;
+}
+
+body {
+  font-family: var(--font);
+  background-color: var(--ag-bg);
+  background-image: var(--ag-bg-mesh);
+  background-attachment: fixed;
+  color: var(--ag-text-primary);
+  min-height: 100vh;
+}
+
+/* Ambient animated spores */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, var(--ag-spore-color) 1px, transparent 1px);
+  background-size: 64px 64px;
+  opacity: 0.16;
+  z-index: 0;
+}
 
 /* ===== HEADER ===== */
 .app-header { height: var(--header-h); background: linear-gradient(135deg, #14532d, #166534); color: #fff; display: flex; align-items: center; padding: 0 18px; position: sticky; top: 0; z-index: 1000; box-shadow: var(--shadow-sm); }
@@ -834,3 +941,335 @@ body { font-family: var(--font); background: var(--gray-100); color: var(--gray-
 
 /* recaptcha sits off-screen; Firebase needs it in DOM */
 #recaptcha-container { position: absolute; bottom: 0; left: 0; }
+
+/* =========================================================
+   FUTURISTIC NEON & DRONE SIMULATOR STYLES
+   ========================================================= */
+.theme-toggle-btn {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+[data-theme="dark"] .theme-toggle-btn {
+  background: rgba(0, 255, 136, 0.12);
+  border-color: #00ff88;
+  color: #00ff88;
+  box-shadow: 0 0 14px rgba(0, 255, 136, 0.3);
+}
+
+.badge-beta {
+  background: rgba(233, 196, 106, 0.25);
+  color: #e9c46a;
+  border: 1px solid #e9c46a;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+[data-theme="dark"] .badge-beta {
+  background: rgba(0, 255, 136, 0.15);
+  color: #00ff88;
+  border-color: #00ff88;
+  text-shadow: 0 0 8px rgba(0, 255, 136, 0.6);
+}
+
+/* Drone Simulator & Drone Canvas */
+.drone-sim-container {
+  background: #091a11;
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-bottom: 14px;
+  border: 1.5px solid rgba(82, 183, 136, 0.4);
+  color: #ffffff;
+  position: relative;
+}
+
+[data-theme="dark"] .drone-sim-container {
+  background: #040805;
+  border-color: #00ff88;
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.15);
+}
+
+.drone-sim-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.drone-mode-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #86efac;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.drone-mode-btn.active {
+  background: #10b981;
+  color: #0f2d1e;
+  border-color: #10b981;
+}
+
+[data-theme="dark"] .drone-mode-btn.active {
+  background: #00ff88;
+  color: #040805;
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.6);
+}
+
+#drone-canvas {
+  width: 100%;
+  height: 180px;
+  background: #0a1f14;
+  border-radius: 8px;
+  display: block;
+  border: 1px solid #1e3f30;
+  cursor: crosshair;
+}
+
+[data-theme="dark"] #drone-canvas {
+  background: #020503;
+  border-color: rgba(0, 255, 136, 0.3);
+}
+
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+  font-family: 'Space Mono', monospace, monospace;
+  font-size: 10px;
+}
+
+.telemetry-item {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 6px 4px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.telemetry-val {
+  color: #86efac;
+  font-weight: 700;
+  font-size: 11.5px;
+}
+
+[data-theme="dark"] .telemetry-val {
+  color: #00ff88;
+  text-shadow: 0 0 8px rgba(0, 255, 136, 0.7);
+}
+
+/* 3 Separate Graphs (Blue, Green, Red) */
+.analytics-kpi-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.analytics-kpi-card {
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  text-align: center;
+  border: 1.5px solid transparent;
+}
+
+.kpi-blue {
+  background: var(--chart-blue-bg);
+  border-color: rgba(0, 240, 255, 0.3);
+  color: var(--chart-blue-primary);
+}
+
+.kpi-green {
+  background: var(--chart-green-bg);
+  border-color: rgba(0, 255, 136, 0.3);
+  color: var(--chart-green-primary);
+}
+
+.kpi-red {
+  background: var(--chart-red-bg);
+  border-color: rgba(255, 42, 95, 0.3);
+  color: var(--chart-red-primary);
+}
+
+.kpi-val-title {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+[data-theme="dark"] .kpi-val-title {
+  text-shadow: 0 0 10px currentColor;
+}
+
+.kpi-val-desc {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+
+.analytics-graph-card {
+  background: var(--ag-surface);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border: 1.5px solid var(--ag-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.graph-card-blue { border-left: 4px solid var(--chart-blue-primary); }
+.graph-card-green { border-left: 4px solid var(--chart-green-primary); }
+.graph-card-red { border-left: 4px solid var(--chart-red-primary); }
+
+[data-theme="dark"] .graph-card-blue { box-shadow: -4px 0 15px rgba(0, 240, 255, 0.2); }
+[data-theme="dark"] .graph-card-green { box-shadow: -4px 0 15px rgba(0, 255, 136, 0.2); }
+[data-theme="dark"] .graph-card-red { box-shadow: -4px 0 15px rgba(255, 42, 95, 0.2); }
+
+.graph-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.graph-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.graph-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+}
+
+.badge-blue { background: var(--chart-blue-bg); color: var(--chart-blue-primary); }
+.badge-green { background: var(--chart-green-bg); color: var(--chart-green-primary); }
+.badge-red { background: var(--chart-red-bg); color: var(--chart-red-primary); }
+
+.graph-svg-canvas {
+  width: 100%;
+  height: 110px;
+  overflow: visible;
+  display: block;
+}
+
+.graph-bar-elem,
+.graph-dot-elem {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.graph-bar-elem:hover {
+  opacity: 0.8;
+  transform: scaleY(1.03);
+  transform-origin: bottom;
+}
+
+.graph-dot-elem:hover {
+  r: 6.5;
+  filter: drop-shadow(0 0 6px currentColor);
+}
+
+.sync-year-banner {
+  background: #0f2d1e;
+  color: white;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  margin-top: 10px;
+  font-size: 11.5px;
+  border: 1px solid rgba(82, 183, 136, 0.4);
+}
+
+[data-theme="dark"] .sync-year-banner {
+  background: #061109;
+  border-color: #00ff88;
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.15);
+}
+
+/* Pest Cards */
+.pest-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pest-card-item {
+  background: var(--ag-surface);
+  border: 2px solid var(--ag-border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pest-card-item.selected {
+  border-color: #b45309;
+  background: rgba(254, 243, 199, 0.5);
+}
+
+[data-theme="dark"] .pest-card-item.selected {
+  border-color: #ff2a5f;
+  background: rgba(255, 42, 95, 0.15);
+  box-shadow: 0 0 12px rgba(255, 42, 95, 0.3);
+}
+
+/* Toast */
+.ag-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--ag-heading);
+  color: white;
+  padding: 12px 20px;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  font-size: 12.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-left: 4px solid var(--ag-primary);
+  z-index: 2000;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+[data-theme="dark"] .ag-toast {
+  background: #08160f;
+  border-color: #00ff88;
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+}
+
+.ag-toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}

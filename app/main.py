@@ -57,19 +57,11 @@ async def health_check():
         "gee_mode": "live" if settings.GEE_ENABLED else "developer_simulation"
     }
 
+@app.get("/", tags=["Frontend"], include_in_schema=False)
 @app.get("/app", tags=["Frontend"], include_in_schema=False)
-async def serve_app():
-    """Serve the web application frontend."""
+async def serve_frontend():
+    """Serve the AgriAssist web frontend."""
     return FileResponse(Path(__file__).parent.parent / "static" / "index.html")
-
-@app.get("/", tags=["System"])
-async def root():
-    return {
-        "message": "Welcome to India Agri-Advisory Platform API",
-        "docs": "/docs",
-        "app": "/app",
-        "version": "0.1.0"
-    }
 
 # Mount static files (CSS, JS, assets)
 static_dir = Path(__file__).parent.parent / "static"

@@ -1,16 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AgriAssist | Intelligent Farming & Drone Platform</title>
+  <title>AgriAssist | Intelligent Precision Farming & Drone Platform</title>
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <!-- Leaflet Draw CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <!-- Google Fonts: Plus Jakarta Sans & Space Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@700&display=swap" rel="stylesheet"/>
   <!-- App CSS -->
   <link rel="stylesheet" href="/static/css/app.css"/>
 </head>
@@ -87,31 +89,38 @@
 <header class="app-header">
   <div class="header-inner">
     <div class="header-logo">
-      <span class="logo-icon">🌾</span>
+      <div class="logo-icon-wrap">🌾</div>
       <div>
-        <div class="logo-title">AgriAssist</div>
-        <div class="logo-sub">Intelligent Precision Advisory & Drone Platform (ICAR · CIBRC · DGCA)</div>
+        <div class="logo-title">
+          AgriAssist <span class="badge-beta">v2.7 Neon Pro</span>
+        </div>
+        <div class="logo-sub">
+          <span>🛸 Precision Aerial Drone & Autonomous Agronomy</span>
+          <span>•</span>
+          <span>ICAR · CIBRC · DGCA</span>
+        </div>
       </div>
     </div>
     <div class="header-actions">
-      <button class="btn btn-outline" style="margin-right: 8px; font-size: 11px;" onclick="localStorage.removeItem('kisan_token'); localStorage.removeItem('kisan_phone'); window.location.reload();">
+      <!-- DYNAMIC THEME SWITCHER -->
+      <button class="theme-toggle-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle Neon Dark Theme">
+        <span id="theme-icon">🌓</span>
+        <span id="theme-text">Theme: Light</span>
+      </button>
+
+      <button type="button" class="btn-open-map" onclick="openMapModal()">
+        <span>🛰️</span> Satellite Map
+      </button>
+
+      <button class="account-icon-btn" onclick="openAuthModal()" title="Farmer Profile">
+        👨‍🌾
+      </button>
+
+      <button class="btn btn-outline" style="font-size: 11px; padding: 5px 10px;" onclick="localStorage.removeItem('kisan_token'); localStorage.removeItem('kisan_phone'); window.location.reload();">
         Logout
       </button>
-      <!-- Farmer Account Button / Session Chip -->
-      <div class="account-chip" id="account-chip" onclick="openAuthModal()">
-        <span class="account-avatar">👨‍🌾</span>
-        <div class="account-info">
-          <div class="account-name" id="user-display-name">Harpreet Singh</div>
-          <div class="account-phone" id="user-display-phone">+91 9876543210</div>
-        </div>
-        <span class="account-switch-icon" title="Switch Farmer / Login">🔄</span>
-      </div>
 
-            <button type="button" class="btn-open-map" onclick="openMapModal()">
-        <span>🗺️</span> Open Google Satellite Map
-      </button>
-      <span class="badge badge-live" id="server-badge">● Online</span>
-      <a href="/docs" target="_blank" class="btn btn-outline">API Docs</a>
+      <span class="badge badge-live" id="server-badge">Telemetry Active</span>
     </div>
   </div>
 </header>
@@ -124,10 +133,11 @@
 
     <!-- TAB HEADERS -->
     <div class="tab-bar">
-      <button class="tab-btn active" data-tab="onboard">📍 Onboard & Soil</button>
-      <button class="tab-btn" data-tab="drone">🚁 Drone & Patches</button>
-      <button class="tab-btn" data-tab="pest">dY?> Pest & IPM</button>
-      <button class="tab-btn" data-tab="livestock">dYO Livestock & Pasture🐛 Pest & IPM</button>
+      <button class="tab-btn active" data-tab="onboard"><span>📍</span> Onboard & Soil</button>
+      <button class="tab-btn" data-tab="drone"><span>🚁</span> Drone & Canopy</button>
+      <button class="tab-btn" data-tab="pest"><span>🐛</span> Pest & IPM</button>
+      <button class="tab-btn" data-tab="analytics"><span>📈</span> Field Analytics</button>
+      <button class="tab-btn" data-tab="livestock"><span>🐄</span> Livestock & Pasture</button>
     </div>
 
     <!-- ─── TAB 1: PLOT ONBOARDING & OVERRIDES ─── -->
@@ -340,24 +350,50 @@
       </div>
     </div>
 
-    <!-- ─── TAB 2: DRONE IMAGERY & CROP PATCHES ─── -->
+    <!-- ─── TAB 2: DRONE IMAGERY & DRONE FLIGHT SIMULATOR ─── -->
     <div class="tab-content" id="tab-drone">
-      <div class="section-title">🚁 Drone Aerial Survey Analysis</div>
-            <!-- Target Land Selector for Diagnosis -->
-      <div class="land-select-box">
-        <div class="land-select-box-title">🎯 Target Land to Diagnose:</div>
-        <select id="pest-target-land" class="form-select" onchange="onPestLandSelected(this.value)">
-          <option value="">-- Select A Saved Land to Diagnose --</option>
-        </select>
-        <div style="font-size:10px;color:#15803d;margin-top:4px" id="pest-target-land-hint">Select one specific land to run CIBRC / DGCA diagnosis</div>
+      <div class="section-title">🚁 Autonomous Aerial Drone Flight Simulator</div>
+
+      <!-- DRONE FLIGHT SIMULATOR HUD -->
+      <div class="drone-sim-container">
+        <div class="drone-sim-toolbar">
+          <div style="display:flex;gap:6px">
+            <button class="drone-mode-btn active" id="btn-mode-ndvi" onclick="setDroneSensorMode('ndvi')">Multispectral NDVI</button>
+            <button class="drone-mode-btn" id="btn-mode-rgb" onclick="setDroneSensorMode('rgb')">RGB TrueColor</button>
+            <button class="drone-mode-btn" id="btn-mode-thermal" onclick="setDroneSensorMode('thermal')">Thermal IR</button>
+          </div>
+          <span style="font-size:10.5px;color:var(--ag-sprout);font-family:'Space Mono',monospace">● DRONE TELEMETRY</span>
+        </div>
+
+        <canvas id="drone-canvas" width="460" height="180"></canvas>
+        <div style="font-size:10.5px;color:var(--ag-text-muted);text-align:center;margin-top:4px">Click anywhere on the field above to inspect that specific crop grid zone</div>
+
+        <div class="telemetry-grid">
+          <div class="telemetry-item"><div>PLASMA CHARGE</div><div class="telemetry-val" id="hud-battery">98%</div></div>
+          <div class="telemetry-item"><div>ION SPEED</div><div class="telemetry-val" id="hud-speed">4.2 m/s</div></div>
+          <div class="telemetry-item"><div>WAYPOINTS</div><div class="telemetry-val" id="hud-wpt">0 / 8</div></div>
+          <div class="telemetry-item"><div>TRACTOR SCAN</div><div class="telemetry-val" id="hud-area">0.0 Ac</div></div>
+        </div>
       </div>
 
-      <p class="hint-text">
-        Upload your own drone orthomosaic imagery or run presets to detect crop health patterns, stressed zones, bare soil gaps, and weed patches.
-      </p>
+      <div style="display:flex;gap:10px;margin-bottom:12px">
+        <button class="btn btn-drone" style="flex:1" id="drone-launch-btn" onclick="startDroneFlightSimulation()">
+          <span>🚁</span> Launch Drone Flight Mission
+        </button>
+        <button class="btn btn-stage" style="flex:1" onclick="resetDroneCanvas()">
+          <span>🔄</span> Reset Scan
+        </button>
+      </div>
 
-      <!-- Drone Image Upload Dropzone -->
-            <!-- Target Land Selector for Diagnosis -->
+      <div style="background:var(--ag-surface);border:1px solid var(--ag-border);border-radius:var(--radius-md);padding:10px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:800;color:var(--ag-heading);margin-bottom:3px">Selected Zone Telemetry:</div>
+        <div id="zone-inspect-txt" style="font-size:11px;color:var(--ag-text-muted);line-height:1.4">
+          Click any grid cell on the aerial canvas to inspect NDVI health, moisture, and weed presence.
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:10px">📷 Drone Orthomosaic Image Upload</div>
+      <!-- Target Land Selector for Drone Survey -->
       <div class="land-select-box">
         <div class="land-select-box-title">🎯 Target Land for Drone Survey:</div>
         <select id="drone-target-land" class="form-select" onchange="onDroneLandSelected(this.value)">
@@ -366,6 +402,7 @@
         <div style="font-size:10px;color:#15803d;margin-top:4px" id="drone-target-land-hint">Using active field coordinates</div>
       </div>
 
+      <!-- Drone Image Upload Dropzone -->
       <div class="drone-upload-box" id="drone-dropzone" onclick="document.getElementById('drone-file-input').click()">
         <input type="file" id="drone-file-input" style="display:none" accept="image/*,.tif,.tiff" onchange="handleDroneFileUpload(event)"/>
         <div class="upload-icon">📷</div>
@@ -419,12 +456,12 @@
         </div>
       </div>
 
-      <button class="btn btn-drone btn-full" id="drone-analyze-btn" onclick="triggerDroneAnalysis()">
+      <button class="btn btn-drone btn-full" id="drone-analyze-btn" onclick="triggerDroneAnalysis()" style="margin-top:10px">
         <span class="btn-icon">⚡</span> Analyze Drone Canopy & Patches
       </button>
 
       <!-- Patch Legend -->
-      <div class="patch-legend-card">
+      <div class="patch-legend-card" style="margin-top:10px">
         <div class="legend-title">Detected Patch Types:</div>
         <div class="legend-grid">
           <div class="legend-item"><span class="legend-box lg-healthy"></span> Healthy Stand (Vigorous)</div>
@@ -437,41 +474,80 @@
 
     <!-- ─── TAB 3: PEST CONTROL ─── -->
     <div class="tab-content" id="tab-pest">
-      <div class="section-title">🐛 Pest / Disease Diagnosis</div>
-      <p class="hint-text">
-        Enter observed crop & pest symptoms to evaluate Economic Threshold Level (ETL) breaches against CIBRC guidelines and generate DGCA drone spray prescriptions.
-      </p>
+      <div class="section-title">🐛 CIBRC Pest & Drone Spray Prescriptions</div>
+      
+      <div class="land-select-box" style="margin-bottom:12px">
+        <div class="land-select-box-title">🎯 Target Land to Diagnose:</div>
+        <select id="pest-target-land" class="form-select" onchange="onPestLandSelected(this.value)">
+          <option value="">-- Select A Saved Land to Diagnose --</option>
+        </select>
+      </div>
+
+      <div class="pest-cards-grid">
+        <div class="pest-card-item selected" onclick="selectPestCard(this, 'yellow_rust')">
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:18px">🌾</span>
+            <span style="font-size:10px;background:var(--chart-blue-bg);color:var(--chart-blue-primary);padding:1px 6px;border-radius:4px;font-weight:700">Wheat</span>
+          </div>
+          <div style="font-size:12px;font-weight:800;color:var(--ag-text-primary);margin-top:2px">Yellow Rust</div>
+          <div style="font-size:10.5px;color:var(--ag-text-muted)">Stripe Rust (Puccinia)</div>
+        </div>
+
+        <div class="pest-card-item" onclick="selectPestCard(this, 'pink_bollworm')">
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:18px">🐛</span>
+            <span style="font-size:10px;background:var(--chart-green-bg);color:var(--chart-green-primary);padding:1px 6px;border-radius:4px;font-weight:700">Cotton</span>
+          </div>
+          <div style="font-size:12px;font-weight:800;color:var(--ag-text-primary);margin-top:2px">Pink Bollworm</div>
+          <div style="font-size:10.5px;color:var(--ag-text-muted)">Rosetted flower borer</div>
+        </div>
+
+        <div class="pest-card-item" onclick="selectPestCard(this, 'fall_armyworm')">
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:18px">🌽</span>
+            <span style="font-size:10px;background:rgba(254,215,170,0.5);color:#c2410c;padding:1px 6px;border-radius:4px;font-weight:700">Maize</span>
+          </div>
+          <div style="font-size:12px;font-weight:800;color:var(--ag-text-primary);margin-top:2px">Fall Armyworm</div>
+          <div style="font-size:10.5px;color:var(--ag-text-muted)">Whorl foliage feeder</div>
+        </div>
+
+        <div class="pest-card-item" onclick="selectPestCard(this, 'blast')">
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:18px">🍃</span>
+            <span style="font-size:10px;background:var(--chart-green-bg);color:var(--chart-green-primary);padding:1px 6px;border-radius:4px;font-weight:700">Paddy</span>
+          </div>
+          <div style="font-size:12px;font-weight:800;color:var(--ag-text-primary);margin-top:2px">Rice Blast</div>
+          <div style="font-size:10.5px;color:var(--ag-text-muted)">Spindle-shaped lesions</div>
+        </div>
+      </div>
+
       <div class="form-grid">
-        <div class="form-group full-width">
+        <div class="form-group full-width" style="display:none">
           <label>Crop</label>
           <select id="pest-crop" class="form-select">
             <option value="wheat">Wheat (गेंहू)</option>
             <option value="paddy">Paddy / Rice (धान)</option>
             <option value="cotton">Cotton (कपास)</option>
             <option value="maize">Maize (मक्का)</option>
-            <option value="soybean">Soybean (सोयाबीन)</option>
-            <option value="mustard">Mustard (सरसों)</option>
-            <option value="sugarcane">Sugarcane (गन्ना)</option>
-            <option value="gram">Gram / Chickpea (चना)</option>
-            <option value="sunflower">Sunflower (सूरजमुखी)</option>
           </select>
         </div>
-        <div class="form-group full-width">
+        <div class="form-group full-width" style="display:none">
           <label>Pest / Disease</label>
           <select id="pest-key">
-            <option value="pink_bollworm">Pink Bollworm - Cotton</option>
-            <option value="whitefly">Whitefly - Cotton</option>
-            <option value="fall_armyworm">Fall Armyworm - Maize</option>
-            <option value="yellow_stem_borer">Yellow Stem Borer - Paddy</option>
-            <option value="blast">Rice Blast - Paddy</option>
             <option value="yellow_rust">Yellow Rust - Wheat</option>
+            <option value="pink_bollworm">Pink Bollworm - Cotton</option>
+            <option value="fall_armyworm">Fall Armyworm - Maize</option>
+            <option value="blast">Rice Blast - Paddy</option>
           </select>
         </div>
         <div class="form-group full-width">
-          <label>Observed Infestation Severity (%)</label>
-          <div class="range-wrap">
-            <input type="range" id="severity-slider" min="0" max="100" value="14" oninput="document.getElementById('severity-val').textContent=this.value+'%'"/>
-            <span id="severity-val" class="range-label">14%</span>
+          <label>Observed Infestation Severity (% of sampled canopy)</label>
+          <div style="display:flex;align-items:center;gap:12px;background:var(--ag-surface);padding:10px;border-radius:var(--radius-md);border:1px solid var(--ag-border)">
+            <input type="range" id="severity-slider" min="0" max="100" value="18" oninput="updateSeverityIndicator(this.value)"/>
+            <span id="severity-val" style="min-width:50px;padding:3px 8px;background:var(--ag-sprout);color:white;font-weight:800;font-size:12px;border-radius:var(--radius-pill);text-align:center">18%</span>
+          </div>
+          <div id="etl-alert-box" style="margin-top:8px;font-size:11px;padding:8px 10px;border-radius:6px;background:var(--chart-red-bg);color:var(--chart-red-primary);border-left:4px solid var(--chart-red-primary)">
+            ⚠️ <strong>Approaching Critical Threshold (18%)</strong>: Pre-emptive drone ultra-low volume foliar treatment recommended.
           </div>
         </div>
         <div class="form-group full-width">
@@ -482,9 +558,190 @@
           </label>
         </div>
       </div>
-      <button class="btn btn-pest btn-full" id="pest-btn" onclick="triggerPestDiagnosis()">
-        <span class="btn-icon">🔍</span> Diagnose & Prescribe
-      </button>
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <button type="button" class="btn btn-stage" style="flex:1" onclick="testDroneSprayAnimation()">
+          <span>💨</span> Test Spray Mist
+        </button>
+        <button type="button" class="btn btn-pest" style="flex:1" id="pest-btn" onclick="triggerPestDiagnosis()">
+          <span>🔍</span> Diagnose & Prescribe
+        </button>
+      </div>
+    </div>
+
+    <!-- ─── TAB 4: FIELD ANALYTICS (3 NEON GRAPHS) ─── -->
+    <div class="tab-content" id="tab-analytics">
+      <div class="section-title">📈 Field History & Performance Analytics</div>
+
+      <!-- KPI Summary -->
+      <div class="analytics-kpi-bar">
+        <div class="analytics-kpi-card kpi-blue">
+          <div class="kpi-val-title">₹ 14.8 L</div>
+          <div class="kpi-val-desc">5-Yr Revenue (Blue)</div>
+        </div>
+        <div class="analytics-kpi-card kpi-green">
+          <div class="kpi-val-title">505 mm</div>
+          <div class="kpi-val-desc">Avg Rain/Yr (Green)</div>
+        </div>
+        <div class="analytics-kpi-card kpi-red">
+          <div class="kpi-val-title">7.2%</div>
+          <div class="kpi-val-desc">Current Stress (Red)</div>
+        </div>
+      </div>
+
+      <!-- GRAPH 1: CROP REVENUE HISTORY (BLUE) -->
+      <div class="analytics-graph-card graph-card-blue">
+        <div class="graph-header">
+          <div class="graph-title" style="color:var(--chart-blue-primary)">
+            <span>💰</span> 1. Crop Revenue History (₹ in Lakhs)
+          </div>
+          <span class="graph-badge badge-blue">Blue Metric</span>
+        </div>
+
+        <svg class="graph-svg-canvas" viewBox="0 0 470 110">
+          <defs>
+            <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.4"/>
+              <stop offset="100%" stop-color="#00f0ff" stop-opacity="0.0"/>
+            </linearGradient>
+          </defs>
+          <line x1="45" y1="15" x2="455" y2="15" stroke="var(--ag-border)" stroke-dasharray="2"/>
+          <line x1="45" y1="50" x2="455" y2="50" stroke="var(--ag-border)" stroke-dasharray="2"/>
+          <line x1="45" y1="85" x2="455" y2="85" stroke="var(--ag-border)"/>
+
+          <text x="10" y="19" font-size="9" fill="var(--ag-text-muted)">₹6L</text>
+          <text x="10" y="54" font-size="9" fill="var(--ag-text-muted)">₹3L</text>
+          <text x="10" y="89" font-size="9" fill="var(--ag-text-muted)">₹0</text>
+
+          <polygon points="65,85 65,60 140,52 215,42 290,26 365,18 440,12 440,85" fill="url(#blueGrad)"/>
+          <polyline fill="none" stroke="var(--chart-blue-primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+            points="65,60 140,52 215,42 290,26 365,18 440,12" style="filter:var(--chart-blue-glow)"/>
+
+          <circle class="graph-dot-elem" cx="65" cy="60" r="4.5" fill="var(--chart-blue-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2021)"/>
+          <text x="56" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2021</text>
+          <text x="56" y="52" font-size="9" fill="var(--chart-blue-primary)" font-weight="800">₹1.9L</text>
+
+          <circle class="graph-dot-elem" cx="140" cy="52" r="4.5" fill="var(--chart-blue-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2022)"/>
+          <text x="131" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2022</text>
+          <text x="131" y="44" font-size="9" fill="var(--chart-blue-primary)" font-weight="800">₹2.4L</text>
+
+          <circle class="graph-dot-elem" cx="215" cy="42" r="4.5" fill="var(--chart-blue-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2023)"/>
+          <text x="206" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2023</text>
+          <text x="206" y="34" font-size="9" fill="var(--chart-blue-primary)" font-weight="800">₹3.1L</text>
+
+          <circle class="graph-dot-elem" cx="290" cy="26" r="4.5" fill="var(--chart-blue-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2024)"/>
+          <text x="281" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2024</text>
+          <text x="281" y="18" font-size="9" fill="var(--chart-blue-primary)" font-weight="800">₹4.2L</text>
+
+          <circle class="graph-dot-elem" cx="365" cy="18" r="4.5" fill="var(--chart-blue-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2025)"/>
+          <text x="356" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2025</text>
+          <text x="356" y="12" font-size="9" fill="var(--chart-blue-primary)" font-weight="800">₹4.9L</text>
+
+          <circle class="graph-dot-elem" cx="440" cy="12" r="4.5" fill="var(--chart-blue-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2026)"/>
+          <text x="430" y="99" font-size="9.5" fill="var(--chart-blue-primary)" font-weight="800">2026*</text>
+          <text x="424" y="8" font-size="8.5" fill="var(--chart-blue-primary)" font-weight="800">₹5.4L</text>
+        </svg>
+      </div>
+
+      <!-- GRAPH 2: WEATHER CONDITIONS HISTORY (GREEN) -->
+      <div class="analytics-graph-card graph-card-green">
+        <div class="graph-header">
+          <div class="graph-title" style="color:var(--chart-green-primary)">
+            <span>🌧️</span> 2. Weather Conditions (Rainfall in mm)
+          </div>
+          <span class="graph-badge badge-green">Green Metric</span>
+        </div>
+
+        <svg class="graph-svg-canvas" viewBox="0 0 470 110">
+          <line x1="45" y1="15" x2="455" y2="15" stroke="var(--ag-border)" stroke-dasharray="2"/>
+          <line x1="45" y1="50" x2="455" y2="50" stroke="var(--ag-border)" stroke-dasharray="2"/>
+          <line x1="45" y1="85" x2="455" y2="85" stroke="var(--ag-border)"/>
+
+          <text x="10" y="19" font-size="9" fill="var(--ag-text-muted)">700mm</text>
+          <text x="10" y="54" font-size="9" fill="var(--ag-text-muted)">350mm</text>
+          <text x="10" y="89" font-size="9" fill="var(--ag-text-muted)">0mm</text>
+
+          <rect class="graph-bar-elem" x="55" y="42" width="22" height="43" fill="var(--chart-green-primary)" rx="3" style="filter:var(--chart-green-glow)" onclick="selectAnalyticsYear(2021)"/>
+          <text x="52" y="36" font-size="8.5" fill="var(--chart-green-primary)" font-weight="800">420mm</text>
+          <text x="56" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2021</text>
+
+          <rect class="graph-bar-elem" x="130" y="24" width="22" height="61" fill="var(--chart-green-primary)" rx="3" style="filter:var(--chart-green-glow)" onclick="selectAnalyticsYear(2022)"/>
+          <text x="127" y="18" font-size="8.5" fill="var(--chart-green-primary)" font-weight="800">580mm</text>
+          <text x="131" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2022</text>
+
+          <rect class="graph-bar-elem" x="205" y="48" width="22" height="37" fill="var(--chart-green-primary)" rx="3" style="filter:var(--chart-green-glow)" onclick="selectAnalyticsYear(2023)"/>
+          <text x="202" y="42" font-size="8.5" fill="var(--chart-green-primary)" font-weight="800">385mm</text>
+          <text x="206" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2023</text>
+
+          <rect class="graph-bar-elem" x="280" y="18" width="22" height="67" fill="var(--chart-green-primary)" rx="3" style="filter:var(--chart-green-glow)" onclick="selectAnalyticsYear(2024)"/>
+          <text x="277" y="12" font-size="8.5" fill="var(--chart-green-primary)" font-weight="800">640mm</text>
+          <text x="281" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2024</text>
+
+          <rect class="graph-bar-elem" x="355" y="32" width="22" height="53" fill="var(--chart-green-primary)" rx="3" style="filter:var(--chart-green-glow)" onclick="selectAnalyticsYear(2025)"/>
+          <text x="352" y="26" font-size="8.5" fill="var(--chart-green-primary)" font-weight="800">510mm</text>
+          <text x="356" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2025</text>
+
+          <rect class="graph-bar-elem" x="430" y="34" width="20" height="51" fill="var(--chart-green-primary)" stroke="#ffffff" stroke-dasharray="2" rx="3" style="filter:var(--chart-green-glow)" onclick="selectAnalyticsYear(2026)"/>
+          <text x="424" y="28" font-size="8" fill="var(--chart-green-primary)" font-weight="800">495mm</text>
+          <text x="428" y="99" font-size="9.5" fill="var(--chart-green-primary)" font-weight="800">2026*</text>
+        </svg>
+      </div>
+
+      <!-- GRAPH 3: FIELD HEALTH & STRESS INDEX (RED) -->
+      <div class="analytics-graph-card graph-card-red">
+        <div class="graph-header">
+          <div class="graph-title" style="color:var(--chart-red-primary)">
+            <span>📉</span> 3. Field Stress & Pest Risk (% Damaged Canopy)
+          </div>
+          <span class="graph-badge badge-red">Red Metric (Lower is Better)</span>
+        </div>
+
+        <svg class="graph-svg-canvas" viewBox="0 0 470 110">
+          <rect x="45" y="15" width="410" height="28" fill="rgba(255,42,95,0.12)"/>
+          <line x1="45" y1="43" x2="455" y2="43" stroke="var(--chart-red-primary)" stroke-dasharray="3"/>
+          <text x="390" y="39" font-size="7.5" fill="var(--chart-red-primary)" font-weight="700">Critical (>25%)</text>
+
+          <line x1="45" y1="62" x2="455" y2="62" stroke="var(--chart-green-primary)" stroke-dasharray="3"/>
+          <line x1="45" y1="85" x2="455" y2="85" stroke="var(--ag-border)"/>
+
+          <text x="10" y="19" font-size="9" fill="var(--ag-text-muted)">50%</text>
+          <text x="10" y="54" font-size="9" fill="var(--ag-text-muted)">25%</text>
+          <text x="10" y="89" font-size="9" fill="var(--ag-text-muted)">0%</text>
+
+          <polyline fill="none" stroke="var(--chart-red-primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+            points="65,30 140,36 215,55 290,68 365,74 440,77" style="filter:var(--chart-red-glow)" />
+
+          <circle class="graph-dot-elem" cx="65" cy="30" r="4.5" fill="var(--chart-red-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2021)"/>
+          <text x="56" y="24" font-size="9" fill="var(--chart-red-primary)" font-weight="800">38%</text>
+          <text x="56" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2021</text>
+
+          <circle class="graph-dot-elem" cx="140" cy="36" r="4.5" fill="var(--chart-red-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2022)"/>
+          <text x="131" y="28" font-size="9" fill="var(--chart-red-primary)" font-weight="800">34%</text>
+          <text x="131" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2022</text>
+
+          <circle class="graph-dot-elem" cx="215" cy="55" r="4.5" fill="var(--chart-red-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2023)"/>
+          <text x="206" y="49" font-size="9" fill="var(--chart-red-primary)" font-weight="800">21%</text>
+          <text x="206" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2023</text>
+
+          <circle class="graph-dot-elem" cx="290" cy="68" r="4.5" fill="var(--chart-red-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2024)"/>
+          <text x="281" y="62" font-size="9" fill="var(--chart-red-primary)" font-weight="800">12%</text>
+          <text x="281" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2024</text>
+
+          <circle class="graph-dot-elem" cx="365" cy="74" r="4.5" fill="var(--chart-red-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2025)"/>
+          <text x="356" y="68" font-size="9" fill="var(--chart-red-primary)" font-weight="800">8.5%</text>
+          <text x="356" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2025</text>
+
+          <circle class="graph-dot-elem" cx="440" cy="77" r="4.5" fill="var(--chart-red-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2026)"/>
+          <text x="430" y="70" font-size="8.5" fill="var(--chart-red-primary)" font-weight="800">6.8%</text>
+          <text x="428" y="99" font-size="9.5" fill="var(--chart-red-primary)" font-weight="800">2026*</text>
+        </svg>
+      </div>
+
+      <!-- Synchronized Year Inspector -->
+      <div class="sync-year-banner" id="analytics-sync-box">
+        <div>
+          <span style="font-weight:800;color:var(--ag-wheat)">🔍 Click any Year Node above</span> to cross-examine Blue Revenue, Green Rainfall, and Red Stress indicators.
+        </div>
+      </div>
     </div>
   
     <!-- ====== TAB 4: IOT LIVESTOCK GRAZING & PASTURE ====== -->
@@ -756,7 +1013,11 @@
 <script src="/static/js/map.js"></script>
 <script src="/static/js/api.js"></script>
 <script src="/static/js/droneOverlay.js"></script>
+<script src="/static/js/neonInteractive.js"></script>
 <script src="/static/js/app.js"></script>
+
+<!-- Toast notification element -->
+<div class="ag-toast" id="ag-toast"></div>
 
 
 <!-- ===== FIREBASE AUTH GATE ===== -->
