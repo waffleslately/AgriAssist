@@ -109,6 +109,44 @@ window.loadPlotFromFarms = function(idx) {
   if (tc) tc.classList.add('active');
 };
 
+// ===== ADD NEW PLOT WORKFLOW =====
+
+window.prepareAddNewPlot = function() {
+  const nextNum = (currentFarmer.plots ? currentFarmer.plots.length : 0) + 1;
+  const nameInput = document.getElementById('plot-name');
+  if (nameInput) {
+    nameInput.value = `Field ${nextNum}`;
+    nameInput.focus();
+  }
+
+  // Clear map drawn boundary
+  if (window.drawnItems) {
+    window.drawnItems.clearLayers();
+  }
+  window.currentCoords = null;
+  if (typeof updateBoundaryStatus === 'function') {
+    updateBoundaryStatus(false);
+  }
+
+  const submitBtn = document.getElementById('submit-btn');
+  if (submitBtn) submitBtn.disabled = true;
+
+  const clearBtn = document.getElementById('clear-btn');
+  if (clearBtn) clearBtn.style.display = 'none';
+
+  // Deselect dropdown
+  const select = document.getElementById('saved-plots-select');
+  if (select) select.value = '';
+
+  // Switch to onboarding tab
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  const t = document.querySelector('[data-tab="onboard"]');
+  if (t) t.classList.add('active');
+  const tc = document.getElementById('tab-onboard');
+  if (tc) tc.classList.add('active');
+};
+
 // ===== FARMER SESSION & PROFILES =====
 
 async function loadFarmerSession(phone) {

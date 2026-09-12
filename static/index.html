@@ -67,7 +67,10 @@
         </div>
         <div class="farmer-banner-sub" id="fb-location">Punjab · Ludhiana · Gill</div>
         <div class="saved-plots-wrap" id="saved-plots-wrap">
-          <label class="field-label-sm">Saved Farm Plots:</label>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+            <label class="field-label-sm" style="margin-bottom:0">Saved Farm Plots:</label>
+            <button type="button" class="btn-text" style="color:#16a34a;font-weight:700" onclick="prepareAddNewPlot()">➕ Add New Land</button>
+          </div>
           <select id="saved-plots-select" onchange="loadSelectedPlot(this.value)">
             <option value="">-- Select Saved Plot --</option>
           </select>
@@ -402,7 +405,10 @@
             <div class="my-farms-sub" id="mf-farmer-loc">Loading farmer profile...</div>
           </div>
         </div>
-        <div id="mf-plot-count" class="mf-plot-badge">0 Plots</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button type="button" class="btn btn-outline" style="padding:2px 8px;font-size:10.5px" onclick="prepareAddNewPlot()">➕ Add Land</button>
+          <div id="mf-plot-count" class="mf-plot-badge">0 Plots</div>
+        </div>
       </div>
       <div id="my-farms-list" class="my-farms-list">
         <div class="mf-empty">No plots saved yet.<br>Complete Plot Onboarding to save your first field.</div>

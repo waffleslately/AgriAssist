@@ -67,6 +67,7 @@ map.on('mousemove', e => {
 
 // ===== DRAW LAYER FOR FARM PLOT =====
 const drawnItems = new L.FeatureGroup();
+window.drawnItems = drawnItems;
 map.addLayer(drawnItems);
 
 // ===== DRONE PATCHES LAYER =====
