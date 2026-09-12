@@ -56,5 +56,8 @@ class Settings(BaseSettings):
     # Roboflow (Pretrained Weed Detection)
     ROBOFLOW_API_KEY: str = ""
 
+    # Government of India Open Data API (data.gov.in / Agmarknet Mandi)
+    DATA_GOV_IN_API_KEY: str = "579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b"
+
 
 settings = Settings()

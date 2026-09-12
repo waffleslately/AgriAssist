@@ -1143,10 +1143,12 @@ body::before {
 .graph-card-blue { border-left: 4px solid var(--chart-blue-primary); }
 .graph-card-green { border-left: 4px solid var(--chart-green-primary); }
 .graph-card-red { border-left: 4px solid var(--chart-red-primary); }
+.graph-card-gold { border-left: 4px solid var(--ag-wheat, #e9c46a); }
 
 [data-theme="dark"] .graph-card-blue { box-shadow: -4px 0 15px rgba(0, 240, 255, 0.2); }
 [data-theme="dark"] .graph-card-green { box-shadow: -4px 0 15px rgba(0, 255, 136, 0.2); }
 [data-theme="dark"] .graph-card-red { box-shadow: -4px 0 15px rgba(255, 42, 95, 0.2); }
+[data-theme="dark"] .graph-card-gold { box-shadow: -4px 0 15px rgba(233, 196, 106, 0.25); }
 
 .graph-header {
   display: flex;
@@ -1173,6 +1175,181 @@ body::before {
 .badge-blue { background: var(--chart-blue-bg); color: var(--chart-blue-primary); }
 .badge-green { background: var(--chart-green-bg); color: var(--chart-green-primary); }
 .badge-red { background: var(--chart-red-bg); color: var(--chart-red-primary); }
+.badge-gold { background: rgba(233, 196, 106, 0.2); color: #b45309; border: 1px solid rgba(233, 196, 106, 0.4); }
+[data-theme="dark"] .badge-gold { background: rgba(233, 196, 106, 0.15); color: #fde047; border-color: rgba(253, 224, 71, 0.3); }
+
+/* Revenue Calculator Panel Styles */
+.rev-headline-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(233, 196, 106, 0.08);
+  border: 1px solid rgba(233, 196, 106, 0.25);
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+[data-theme="dark"] .rev-headline-wrap {
+  background: rgba(233, 196, 106, 0.05);
+  border-color: rgba(233, 196, 106, 0.2);
+}
+
+.rev-kpi-sub {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--ag-text-muted);
+  letter-spacing: 0.5px;
+}
+
+.rev-headline-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 24px;
+  font-weight: 800;
+  color: #b45309;
+  line-height: 1.15;
+  margin: 2px 0;
+}
+
+[data-theme="dark"] .rev-headline-num {
+  color: #fde047;
+  text-shadow: 0 0 12px rgba(253, 224, 71, 0.4);
+}
+
+.rev-crop-info {
+  font-size: 11px;
+  color: var(--ag-text-muted);
+}
+
+.rev-harvest-pill {
+  text-align: right;
+  padding: 6px 10px;
+  background: var(--ag-surface);
+  border: 1px solid var(--ag-border);
+  border-radius: 6px;
+}
+
+.rev-controls-box {
+  background: var(--ag-surface);
+  border: 1px solid var(--ag-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.rev-yield-number-input {
+  width: 68px;
+  padding: 3px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Space Mono', monospace;
+  border: 1px solid var(--ag-border);
+  border-radius: 4px;
+  background: var(--ag-surface);
+  color: var(--ag-text-primary);
+  text-align: right;
+}
+
+.rev-slider {
+  width: 100%;
+  height: 6px;
+  accent-color: #d97706;
+  cursor: pointer;
+  margin: 6px 0 2px;
+}
+
+[data-theme="dark"] .rev-slider {
+  accent-color: #fde047;
+}
+
+.rev-slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9.5px;
+  color: var(--ag-text-muted);
+}
+
+.rev-price-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.rev-price-card {
+  background: var(--ag-surface);
+  border: 1px solid var(--ag-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme="dark"] .rev-price-card {
+  background: rgba(4, 18, 11, 0.7);
+}
+
+.rev-price-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3px;
+}
+
+.rev-price-type {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ag-text-primary);
+}
+
+.rev-rate-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ag-text-primary);
+  margin: 2px 0;
+}
+
+.rev-market-name {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ag-text-muted);
+}
+
+.rev-date-note {
+  font-size: 9.5px;
+  color: var(--ag-text-muted);
+  opacity: 0.85;
+}
+
+.rev-price-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.green-dot { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+.blue-dot { background: #3b82f6; box-shadow: 0 0 6px #3b82f6; }
+
+.rev-better-callout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #fefce8;
+  border: 1px solid #fef08a;
+  color: #854d0e;
+  font-size: 11px;
+}
+
+[data-theme="dark"] .rev-better-callout {
+  background: rgba(233, 196, 106, 0.1);
+  border-color: rgba(233, 196, 106, 0.3);
+  color: #fde047;
+}
 
 .graph-svg-canvas {
   width: 100%;

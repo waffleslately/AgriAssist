@@ -16,7 +16,9 @@ from app.models.satellite_observation import SatelliteObservation
 from app.models.advisory import Advisory
 from app.schemas.plot import PlotOnboardRequest, PlotResponse
 
+from pydantic import BaseModel
 from app.services import gee_service, weather_service, soil_service, agronomy_engine, localization_service
+from app.services.price_service import price_service
 from app.api.v1.endpoints.auth import FARMER_STORE
 
 router = APIRouter()
@@ -383,3 +385,172 @@ async def get_plot_development_history(plot_id: uuid.UUID, db: AsyncSession = De
         "scan_count": len(scan_trend),
         "scans": scan_trend
     }
+
+
+class AdminMspPayload(BaseModel):
+    crop: str
+    msp_per_quintal: float
+    season: str = "Rabi"
+    year: str = "2024-25"
+
+
+@router.get("/{plot_id}/revenue-estimate", summary="Real-time Revenue Calculator using Live data.gov.in Agmarknet prices and CCEA MSP rates")
+async def get_plot_revenue_estimate(
+    plot_id: str,
+    expected_yield_per_acre: Optional[float] = None,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Computes real-time gross revenue estimation for a plot's current crop.
+    Uses:
+    1. Live Mandi Market Prices from data.gov.in (Agmarknet)
+    2. Official CCEA Minimum Support Price (MSP) reference floor
+    3. Sensible ICAR yield-per-acre default fallback if not provided
+    """
+    plot_name = "Main Field"
+    crop_name = "wheat"
+    area_acres = 2.5
+    state = "Punjab"
+    district = "Ludhiana"
+
+    # Check PostgreSQL if available
+    try:
+        plot_uuid = uuid.UUID(plot_id) if isinstance(plot_id, str) and len(plot_id) == 36 else None
+        if plot_uuid:
+            res = await db.execute(select(Plot).where(Plot.id == plot_uuid))
+            p_record = res.scalars().first()
+            if p_record:
+                plot_name = p_record.name or plot_name
+                area_acres = float(p_record.area_acres or area_acres)
+                # Look up farmer state & district
+                f_res = await db.execute(select(Farmer).where(Farmer.id == p_record.farmer_id))
+                farmer = f_res.scalars().first()
+                if farmer:
+                    state = farmer.state or state
+                    district = farmer.district or district
+
+                # Look up active crop cycle
+                c_res = await db.execute(
+                    select(CropCycle)
+                    .where(CropCycle.plot_id == plot_uuid, CropCycle.is_active == True)
+                    .order_by(CropCycle.sowing_date.desc())
+                )
+                cycle = c_res.scalars().first()
+                if cycle:
+                    crop_name = cycle.crop_name or crop_name
+    except Exception as e:
+        try:
+            await db.rollback()
+
+        except Exception:
+            pass
+
+
+    # Fallback to in-memory FARMER_STORE
+    for phone, f_data in FARMER_STORE.items():
+        plots_list = f_data.get("plots", [])
+        for p in plots_list:
+            if str(p.get("plot_id")) == str(plot_id):
+                plot_name = p.get("plot_name", plot_name)
+                crop_name = p.get("crop_name", crop_name)
+                area_acres = float(p.get("area_acres", area_acres))
+                state = f_data.get("state", state)
+                district = f_data.get("district", district)
+                break
+
+    # Resolve yield per acre (farmer custom or ICAR default)
+    default_icar_yield = price_service.get_avg_yield_per_acre(crop_name)
+    actual_yield_per_acre = float(expected_yield_per_acre) if (expected_yield_per_acre is not None and expected_yield_per_acre > 0) else default_icar_yield
+    total_yield_quintals = round(actual_yield_per_acre * area_acres, 2)
+
+    # Fetch Live Mandi Price & MSP
+    mandi_data = await price_service.get_live_mandi_price(crop=crop_name, state=state, district=district)
+    msp_data = price_service.get_msp_rate(crop=crop_name)
+
+    modal_price = mandi_data.get("modal_price_per_quintal")
+    msp_rate = msp_data.get("msp_per_quintal") if msp_data else None
+
+    # Compute Revenues
+    revenue_at_market = round(total_yield_quintals * modal_price, 2) if modal_price is not None else None
+    revenue_at_msp = round(total_yield_quintals * msp_rate, 2) if msp_rate is not None else None
+
+    # Primary estimated revenue (prefers market price if valid, else MSP)
+    if revenue_at_market is not None:
+        estimated_revenue = revenue_at_market
+    elif revenue_at_msp is not None:
+        estimated_revenue = revenue_at_msp
+    else:
+        estimated_revenue = 0.0
+
+    # Formulate Plain-Language Better Option
+    if revenue_at_market is not None and revenue_at_msp is not None:
+        diff = round(abs(revenue_at_market - revenue_at_msp), 2)
+        if revenue_at_market > revenue_at_msp:
+            better_option = f"Selling at open market price gives you ₹{diff:,.0f} more than government MSP."
+            better_channel = "market"
+        elif revenue_at_msp > revenue_at_market:
+            better_option = f"Selling at government MSP gives you ₹{diff:,.0f} more than today's local mandi rate."
+            better_channel = "msp"
+        else:
+            better_option = "Market price is currently on par with the government MSP floor."
+            better_channel = "equal"
+    elif revenue_at_market is not None:
+        better_option = f"Live commercial market rate. Note: {crop_name.capitalize()} is not under central MSP procurement."
+        better_channel = "market"
+    elif revenue_at_msp is not None:
+        better_option = f"Live mandi rates temporarily unavailable for {district} — showing government MSP floor price."
+        better_channel = "msp"
+    else:
+        better_option = f"Price data unavailable for {crop_name} in {district} right now."
+        better_channel = "unavailable"
+
+    # Human-readable price source label
+    source_type = mandi_data.get("source", "unavailable")
+    if source_type == "agmarknet_live":
+        source_label = f"Live · Agmarknet ({mandi_data.get('as_of_date')})"
+    elif source_type == "cached":
+        source_label = f"Cached · As of {mandi_data.get('as_of_date')}"
+    elif source_type == "msp_fallback":
+        source_label = f"MSP · {msp_data.get('season')} {msp_data.get('year')}" if msp_data else "Govt MSP Floor"
+    else:
+        source_label = "Price Unavailable"
+
+    return {
+        "plot_id": str(plot_id),
+        "plot_name": plot_name,
+        "crop": crop_name,
+        "crop_display": msp_data.get("crop", crop_name.capitalize()) if msp_data else crop_name.capitalize(),
+        "crop_hi": msp_data.get("crop_hi", "") if msp_data else "",
+        "state": state,
+        "district": district,
+        "area_acres": area_acres,
+        "expected_yield_per_acre": round(actual_yield_per_acre, 2),
+        "default_avg_yield_per_acre": round(default_icar_yield, 2),
+        "total_yield_quintals": total_yield_quintals,
+        "market_price": mandi_data,
+        "msp_rate": msp_data,
+        "revenue_at_market_price": revenue_at_market,
+        "revenue_at_msp": revenue_at_msp,
+        "estimated_revenue": estimated_revenue,
+        "better_option_summary": better_option,
+        "better_channel": better_channel,
+        "price_source_label": source_label
+    }
+
+
+@router.post("/admin/msp-rates", summary="Admin update for seasonal MSP rates")
+async def update_msp_rate_endpoint(payload: AdminMspPayload):
+    updated = price_service.update_msp_rate(
+        crop=payload.crop,
+        msp_per_quintal=payload.msp_per_quintal,
+        season=payload.season,
+        year=payload.year
+    )
+    return {"status": "updated", "msp_record": updated}
+
+
+@router.get("/admin/msp-rates", summary="List all seeded MSP rates")
+async def get_all_msp_rates():
+    from app.services.price_service import MSP_RATES
+    return {"rates": MSP_RATES}
+

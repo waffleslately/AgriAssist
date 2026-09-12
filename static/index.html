@@ -863,8 +863,91 @@
         </svg>
       </div>
 
+      <!-- GRAPH 4 / PANEL 4: LIVE REVENUE CALCULATOR (GOLD / REAL GOVT DATA) -->
+      <div class="analytics-graph-card graph-card-gold" id="revenue-calculator-card">
+        <div class="graph-header">
+          <div class="graph-title" style="color:var(--ag-wheat, #d97706)">
+            <span>🌾</span> 4. Live Crop Revenue Calculator
+          </div>
+          <span class="graph-badge badge-gold" id="rev-source-badge">Live · Agmarknet</span>
+        </div>
+
+        <!-- Headline Gross Revenue Display -->
+        <div class="rev-headline-wrap">
+          <div class="rev-headline-left">
+            <div class="rev-kpi-sub">Estimated Gross Revenue (Current Crop)</div>
+            <div class="rev-headline-num" id="rev-headline-val">₹ 1,16,025</div>
+            <div class="rev-crop-info" id="rev-crop-sub">
+              🌾 <span id="rev-crop-name" style="font-weight:700">Wheat (गेहूं)</span> • <span id="rev-plot-area">2.5</span> Acres • <span id="rev-location">Ludhiana, Punjab</span>
+            </div>
+          </div>
+          <div class="rev-headline-right">
+            <div class="rev-harvest-pill">
+              <span style="font-size:10.5px;color:var(--ag-text-muted)">Harvest Volume</span>
+              <strong id="rev-total-harvest" style="font-size:13.5px;color:var(--ag-text-primary);font-family:'Space Mono',monospace">48.8 qtl</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Yield Adjustment Controls -->
+        <div class="rev-controls-box">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <label for="rev-yield-slider" style="font-size:11.5px;font-weight:700;color:var(--ag-text-primary)">
+              Expected Yield (Quintals / Acre)
+            </label>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="number" id="rev-yield-input" step="0.5" min="1" max="500" value="19.5"
+                class="rev-yield-number-input" oninput="onYieldNumberInput(this.value)"/>
+              <span style="font-size:11px;color:var(--ag-text-muted)">qtl/acre</span>
+              <button type="button" class="btn-text-sm" onclick="resetToIcarYield()" title="Reset to ICAR regional baseline" style="font-size:10.5px;padding:2px 6px">
+                ICAR Baseline
+              </button>
+            </div>
+          </div>
+          <input type="range" id="rev-yield-slider" min="5" max="40" step="0.5" value="19.5"
+            class="rev-slider" oninput="onYieldSliderInput(this.value)"/>
+          <div class="rev-slider-labels">
+            <span id="rev-slider-min-lbl">Low (5 q)</span>
+            <span id="rev-icar-default-label" style="font-weight:700;color:var(--ag-primary)">ICAR Baseline: 19.5 q/acre</span>
+            <span id="rev-slider-max-lbl">High (40 q)</span>
+          </div>
+        </div>
+
+        <!-- Live Price Comparison: Agmarknet Mandi vs. CCEA MSP -->
+        <div class="rev-price-grid">
+          <div class="rev-price-card" id="rev-card-market">
+            <div class="rev-price-card-header">
+              <span class="rev-price-type">🏪 Live Mandi Rate</span>
+              <span class="rev-price-status-dot green-dot"></span>
+            </div>
+            <div class="rev-rate-num" id="rev-market-rate">₹ 2,380 <span style="font-size:10px;font-weight:400">/ qtl</span></div>
+            <div class="rev-market-name" id="rev-market-label">Ludhiana Mandi</div>
+            <div class="rev-date-note" id="rev-market-date">As of 12 Sep 2026</div>
+          </div>
+
+          <div class="rev-price-card" id="rev-card-msp">
+            <div class="rev-price-card-header">
+              <span class="rev-price-type">🏛️ Govt. MSP Floor</span>
+              <span class="rev-price-status-dot blue-dot"></span>
+            </div>
+            <div class="rev-rate-num" id="rev-msp-rate">₹ 2,275 <span style="font-size:10px;font-weight:400">/ qtl</span></div>
+            <div class="rev-market-name" id="rev-msp-season">Rabi 2024-25</div>
+            <div class="rev-date-note">CCEA Statutory Floor</div>
+          </div>
+        </div>
+
+        <!-- Better Channel Recommendation Callout -->
+        <div class="rev-better-callout" id="rev-better-callout">
+          <span style="font-size:15px" id="rev-callout-icon">💡</span>
+          <span id="rev-better-text" style="line-height:1.35">
+            Selling at open market price gives you <strong>₹5,124 more</strong> than government MSP.
+          </span>
+        </div>
+      </div>
+
       <!-- Synchronized Year Inspector -->
       <div class="sync-year-banner" id="analytics-sync-box">
+
         <div>
           <span style="font-weight:800;color:var(--ag-wheat)">🔍 Click any Year Node above</span> to cross-examine Blue Revenue, Green Rainfall, and Red Stress indicators.
         </div>

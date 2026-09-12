@@ -2032,3 +2032,164 @@ if (document.readyState === 'loading') {
   setupSoilDropzone();
 }
 
+// ===== LIVE CROP REVENUE CALCULATOR (PANEL 4 IN FIELD ANALYTICS) =====
+
+let yieldDebounceTimer = null;
+window._currentIcarYield = 19.5;
+window._currentRevenuePlotId = null;
+
+window.loadRevenueCalculator = async function(customYield) {
+  // Determine plot ID from active farmer or default
+  let plotId = '00000000-0000-0000-0000-000000000001';
+  if (typeof currentFarmer !== 'undefined' && currentFarmer && currentFarmer.plots && currentFarmer.plots.length > 0) {
+    plotId = currentFarmer.plots[0].plot_id || plotId;
+  }
+  window._currentRevenuePlotId = plotId;
+
+  try {
+    const data = await apiGetRevenueEstimate(plotId, customYield);
+    renderRevenueCalculator(data, customYield);
+  } catch (err) {
+    console.warn('Revenue calculator fetch note:', err);
+    // Display graceful offline/fallback state
+    const headline = document.getElementById('rev-headline-val');
+    if (headline) headline.textContent = '₹ --,---';
+    const note = document.getElementById('rev-better-text');
+    if (note) note.textContent = 'Price data temporarily unavailable. Please retry shortly.';
+  }
+};
+
+function renderRevenueCalculator(data, customYield) {
+  if (!data) return;
+
+  // 1. Headline Revenue Value
+  const headlineEl = document.getElementById('rev-headline-val');
+  if (headlineEl) {
+    const est = data.estimated_revenue || 0;
+    if (est >= 100000) {
+      const lakhs = (est / 100000).toFixed(2);
+      headlineEl.textContent = `₹ ${lakhs} Lakhs`;
+      headlineEl.title = `Exact: ₹ ${Math.round(est).toLocaleString('en-IN')}`;
+    } else {
+      headlineEl.textContent = `₹ ${Math.round(est).toLocaleString('en-IN')}`;
+    }
+  }
+
+  // 2. Crop & Plot Context
+  const cropEl = document.getElementById('rev-crop-name');
+  if (cropEl) cropEl.textContent = `${data.crop_display} (${data.crop_hi || data.crop})`;
+
+  const areaEl = document.getElementById('rev-plot-area');
+  if (areaEl) areaEl.textContent = data.area_acres;
+
+  const locEl = document.getElementById('rev-location');
+  if (locEl) locEl.textContent = `${data.district}, ${data.state}`;
+
+  // 3. Harvest Volume Pill
+  const harvestEl = document.getElementById('rev-total-harvest');
+  if (harvestEl) harvestEl.textContent = `${data.total_yield_quintals} qtl`;
+
+  // 4. Source Badge
+  const badgeEl = document.getElementById('rev-source-badge');
+  if (badgeEl) {
+    badgeEl.textContent = data.price_source_label || 'Live · Agmarknet';
+    if (data.market_price && data.market_price.source === 'agmarknet_live') {
+      badgeEl.className = 'graph-badge badge-green';
+    } else if (data.market_price && data.market_price.source === 'cached') {
+      badgeEl.className = 'graph-badge badge-blue';
+    } else {
+      badgeEl.className = 'graph-badge badge-gold';
+    }
+  }
+
+  // 5. Market Price Card
+  const mktRateEl = document.getElementById('rev-market-rate');
+  const mktLabelEl = document.getElementById('rev-market-label');
+  const mktDateEl = document.getElementById('rev-market-date');
+  if (data.market_price && data.market_price.modal_price_per_quintal) {
+    if (mktRateEl) mktRateEl.innerHTML = `₹ ${Math.round(data.market_price.modal_price_per_quintal).toLocaleString('en-IN')} <span style="font-size:10px;font-weight:400">/ qtl</span>`;
+    if (mktLabelEl) mktLabelEl.textContent = data.market_price.market || 'Local Mandi';
+    if (mktDateEl) mktDateEl.textContent = `As of ${data.market_price.as_of_date}`;
+  } else {
+    if (mktRateEl) mktRateEl.textContent = 'Mkt N/A';
+    if (mktLabelEl) mktLabelEl.textContent = 'No local trading reported';
+    if (mktDateEl) mktDateEl.textContent = 'Showing MSP Floor';
+  }
+
+  // 6. MSP Floor Card
+  const mspRateEl = document.getElementById('rev-msp-rate');
+  const mspSeasonEl = document.getElementById('rev-msp-season');
+  if (data.msp_rate && data.msp_rate.msp_per_quintal) {
+    if (mspRateEl) mspRateEl.innerHTML = `₹ ${Math.round(data.msp_rate.msp_per_quintal).toLocaleString('en-IN')} <span style="font-size:10px;font-weight:400">/ qtl</span>`;
+    if (mspSeasonEl) mspSeasonEl.textContent = `${data.msp_rate.season} ${data.msp_rate.year}`;
+  } else {
+    if (mspRateEl) mspRateEl.textContent = 'No MSP';
+    if (mspSeasonEl) mspSeasonEl.textContent = 'Commercial Open Market';
+  }
+
+  // 7. Better Option Callout
+  const betterTextEl = document.getElementById('rev-better-text');
+  const calloutIconEl = document.getElementById('rev-callout-icon');
+  if (betterTextEl) betterTextEl.innerHTML = data.better_option_summary;
+  if (calloutIconEl) {
+    if (data.better_channel === 'market') calloutIconEl.textContent = '📈';
+    else if (data.better_channel === 'msp') calloutIconEl.textContent = '🏛️';
+    else calloutIconEl.textContent = '💡';
+  }
+
+  // 8. Synchronize Yield Controls (only on initial load if customYield wasn't given)
+  window._currentIcarYield = data.default_avg_yield_per_acre || 19.5;
+  const numInput = document.getElementById('rev-yield-input');
+  const slider = document.getElementById('rev-yield-slider');
+  const icarLbl = document.getElementById('rev-icar-default-label');
+
+  if (icarLbl) {
+    icarLbl.textContent = `ICAR Baseline: ${window._currentIcarYield} q/acre`;
+  }
+
+  if (customYield == null) {
+    if (numInput) numInput.value = data.expected_yield_per_acre;
+    if (slider) {
+      const base = window._currentIcarYield;
+      slider.min = Math.max(1, Math.floor(base * 0.3));
+      slider.max = Math.ceil(base * 2.2);
+      slider.value = data.expected_yield_per_acre;
+      const minLbl = document.getElementById('rev-slider-min-lbl');
+      const maxLbl = document.getElementById('rev-slider-max-lbl');
+      if (minLbl) minLbl.textContent = `Low (${slider.min} q)`;
+      if (maxLbl) maxLbl.textContent = `High (${slider.max} q)`;
+    }
+  }
+}
+
+window.onYieldSliderInput = function(val) {
+  const numInput = document.getElementById('rev-yield-input');
+  if (numInput) numInput.value = val;
+  debouncedRecalculateRevenue(parseFloat(val));
+};
+
+window.onYieldNumberInput = function(val) {
+  const slider = document.getElementById('rev-yield-slider');
+  if (slider) slider.value = val;
+  debouncedRecalculateRevenue(parseFloat(val));
+};
+
+function debouncedRecalculateRevenue(yieldVal) {
+  if (isNaN(yieldVal) || yieldVal <= 0) return;
+  if (yieldDebounceTimer) clearTimeout(yieldDebounceTimer);
+  yieldDebounceTimer = setTimeout(() => {
+    window.loadRevenueCalculator(yieldVal);
+  }, 300);
+}
+
+window.resetToIcarYield = function() {
+  if (window._currentIcarYield) {
+    const numInput = document.getElementById('rev-yield-input');
+    const slider = document.getElementById('rev-yield-slider');
+    if (numInput) numInput.value = window._currentIcarYield;
+    if (slider) slider.value = window._currentIcarYield;
+    window.loadRevenueCalculator(window._currentIcarYield);
+  }
+};
+
+

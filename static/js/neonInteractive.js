@@ -377,6 +377,9 @@ window.showToast = function(msg) {
         if (typeof window.selectAnalyticsYear === 'function') {
           window.selectAnalyticsYear(2026);
         }
+        if (typeof window.loadRevenueCalculator === 'function') {
+          window.loadRevenueCalculator();
+        }
       }, 50);
     }
 
