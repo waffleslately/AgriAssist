@@ -44,5 +44,14 @@ class Settings(BaseSettings):
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["*"]
 
+    # Firebase (Phone Auth)
+    FIREBASE_PROJECT_ID: str = ""
+    FIREBASE_SERVICE_ACCOUNT_JSON_PATH: str = ""   # path to service-account JSON, backend-only
+    # Frontend Firebase config — served via /auth/firebase-config, never committed
+    FIREBASE_API_KEY: str = ""
+    FIREBASE_AUTH_DOMAIN: str = ""
+    FIREBASE_APP_ID: str = ""
+    FIREBASE_MESSAGING_SENDER_ID: str = ""
+
 
 settings = Settings()

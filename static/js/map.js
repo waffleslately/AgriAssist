@@ -4,8 +4,10 @@
 const map = L.map('map', {
   center: [30.9025, 75.8525],
   zoom: 14,
-  zoomControl: true
+  zoomControl: true,
+  preferCanvas: true
 });
+window.map = map;
 
 // 1. Google Maps Real Satellite Hybrid (High-Resolution Satellite Imagery + Field Roads & Village Labels)
 const googleHybrid = L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {

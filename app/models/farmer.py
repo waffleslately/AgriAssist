@@ -1,6 +1,7 @@
 ﻿import uuid
 from datetime import datetime, timezone
 from sqlalchemy import String, DateTime
+from typing import Optional
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
@@ -22,6 +23,10 @@ class Farmer(Base):
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc)
+    )
+
+    firebase_uid: Mapped[Optional[str]] = mapped_column(
+        String(128), unique=True, nullable=True, index=True
     )
 
     plots = relationship("Plot", back_populates="farmer", cascade="all, delete-orphan")

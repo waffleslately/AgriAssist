@@ -43,6 +43,10 @@ htmlcov/
 Thumbs.db
 ehthumbs.db
 
+# Firebase service account key — MUST NEVER be committed
+firebase-service-account.json
+firebase-service-account*.json
+
 # Database / Local storage
 *.sqlite3
 *.db

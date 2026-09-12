@@ -17,6 +17,73 @@
 <body>
 
 <!-- ========== HEADER ========== -->
+
+<!-- =========================================================
+     FIREBASE PHONE AUTH GATE
+     This overlay covers the entire screen on first load.
+     It is hidden only AFTER the backend confirms the ID token.
+     ========================================================= -->
+<div id="auth-gate" style="display:none">
+  <div class="ag-card">
+
+    <!-- Logo -->
+    <div class="ag-logo">
+      <span class="ag-logo-icon">🌾</span>
+      <div>
+        <div class="ag-logo-title">AgriAssist</div>
+        <div class="ag-logo-sub">Sign in to your farm dashboard</div>
+      </div>
+    </div>
+
+    <!-- Step 1: Phone number -->
+    <div id="auth-step-phone">
+      <label class="ag-label">Mobile Number</label>
+      <div class="ag-phone-row">
+        <span class="ag-country-code">🇮🇳 +91</span>
+        <input
+          id="ag-phone-input"
+          type="tel"
+          inputmode="numeric"
+          maxlength="10"
+          placeholder="9876543210"
+          class="ag-input"
+          autocomplete="tel"
+        />
+      </div>
+      <button id="ag-send-btn" class="ag-btn-primary">
+        📲 Send OTP
+      </button>
+      <p class="ag-hint">Firebase sends a real SMS to your number.<br>No OTP is hardcoded or simulated.</p>
+    </div>
+
+    <!-- Step 2: OTP input (hidden initially) -->
+    <div id="auth-step-otp" style="display:none">
+      <label class="ag-label">6-Digit OTP from SMS</label>
+      <input
+        id="ag-otp-input"
+        type="text"
+        inputmode="numeric"
+        maxlength="6"
+        placeholder="_ _ _ _ _ _"
+        class="ag-input ag-otp-input"
+        autocomplete="one-time-code"
+      />
+      <button id="ag-verify-btn" class="ag-btn-primary">
+        ✅ Verify &amp; Sign In
+      </button>
+      <div class="ag-resend-row">
+        <span id="ag-otp-timer" style="display:none;font-size:11px;color:#64748b"></span>
+        <button id="ag-resend-btn" class="ag-btn-link" style="display:none">↩ Resend OTP</button>
+      </div>
+    </div>
+
+    <!-- Status message area -->
+    <div id="ag-auth-msg" class="ag-msg" style="display:none"></div>
+
+  </div>
+</div>
+<!-- END FIREBASE AUTH GATE -->
+
 <header class="app-header">
   <div class="header-inner">
     <div class="header-logo">
@@ -574,6 +641,14 @@
 <script src="/static/js/map.js"></script>
 <script src="/static/js/api.js"></script>
 <script src="/static/js/app.js"></script>
+
+
+<!-- ===== FIREBASE AUTH GATE ===== -->
+<!-- Firebase Web SDK v10 (loaded as ES module) -->
+<script type="module" src="/static/js/firebaseAuth.js"></script>
+
+<!-- Invisible reCAPTCHA anchor (required by Firebase Phone Auth) -->
+<div id="recaptcha-container"></div>
 
 </body>
 </html>

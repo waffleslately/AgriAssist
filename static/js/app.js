@@ -17,15 +17,17 @@ window.openMapModal = function() {
   const overlay = document.getElementById('map-modal-overlay');
   if (overlay) {
     overlay.style.display = 'flex';
-    // Invalidate Leaflet map size once container is visible
-    setTimeout(() => {
-      if (window.map) {
-        window.map.invalidateSize();
-        if (window.currentCoords && window.drawnItems && window.drawnItems.getLayers().length > 0) {
-          window.map.fitBounds(window.drawnItems.getBounds(), { padding: [40, 40] });
+    // Fire invalidateSize multiple times to ensure tiles fully render
+    [100, 300, 600, 1000].forEach(delay => {
+      setTimeout(() => {
+        if (window.map) {
+          window.map.invalidateSize({ animate: false });
+          if (window.currentCoords && window.drawnItems && window.drawnItems.getLayers().length > 0) {
+            try { window.map.fitBounds(window.drawnItems.getBounds(), { padding: [40, 40] }); } catch(e) {}
+          }
         }
-      }
-    }, 150);
+      }, delay);
+    });
   }
 };
 
@@ -89,15 +91,23 @@ window.onPestLandSelected = function(idx) {
   if (hint) hint.textContent = `Diagnosing: ${p.plot_name} (${p.crop_name}, ${p.stage || 'Active growth'})`;
 };
 
-document.addEventListener('DOMContentLoaded', async () => {
+// ── App bootstraps ONLY after Firebase auth gate succeeds ────────────────
+// The 'agri-auth-success' event is dispatched by firebaseAuth.js either:
+//   (a) immediately, when a valid JWT already exists in localStorage, OR
+//   (b) after the user completes Phone OTP verification.
+// This ensures NO part of the dashboard is visible before auth.
+
+async function _initAppAfterAuth(detail) {
   const sowDate = new Date();
   sowDate.setDate(sowDate.getDate() - 25);
   const sowInput = document.getElementById('sowing-date');
   if (sowInput) sowInput.value = sowDate.toISOString().split('T')[0];
 
-  const savedPhone = localStorage.getItem('kisan_phone') || '9876543210';
-  await loadFarmerSession(savedPhone);
+  const phone = (detail && detail.phone_number)
+    || localStorage.getItem('kisan_phone')
+    || '9876543210';
 
+  await loadFarmerSession(phone);
   checkHealth();
 
   document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -112,6 +122,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   loadSamplePunjabField();
+}
+
+window.addEventListener('agri-auth-success', (e) => {
+  _initAppAfterAuth(e.detail);
 });
 
 

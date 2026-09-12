@@ -1,4 +1,4 @@
-﻿/* ===== RESET & MODERN DESIGN TOKENS ===== */
+/* ===== RESET & MODERN DESIGN TOKENS ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --green:      #16a34a;
@@ -548,6 +548,11 @@ body { font-family: var(--font); background: var(--gray-100); color: var(--gray-
   align-items: center;
   justify-content: center;
   padding: 20px;
+  animation: fadeInOverlay 0.2s ease;
+}
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 .map-modal-container {
   background: #fff;
@@ -559,6 +564,11 @@ body { font-family: var(--font); background: var(--gray-100); color: var(--gray-
   flex-direction: column;
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  animation: slideUpModal 0.25s ease;
+}
+@keyframes slideUpModal {
+  from { transform: translateY(20px); opacity: 0.5; }
+  to   { transform: translateY(0);    opacity: 1;   }
 }
 .map-modal-header {
   height: 52px;
@@ -568,6 +578,7 @@ body { font-family: var(--font); background: var(--gray-100); color: var(--gray-
   align-items: center;
   justify-content: space-between;
   padding: 0 18px;
+  flex-shrink: 0;
 }
 .map-modal-title {
   font-size: 14px;
@@ -593,7 +604,16 @@ body { font-family: var(--font); background: var(--gray-100); color: var(--gray-
   flex: 1;
   position: relative;
   width: 100%;
-  height: calc(100% - 52px);
+  overflow: hidden;
+  min-height: 0;
+}
+/* Explicit map height — critical for Leaflet in hidden containers */
+#map {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 400px;
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
 }
 
 /* Land Selector Highlight Box */
@@ -612,3 +632,205 @@ body { font-family: var(--font); background: var(--gray-100); color: var(--gray-
   letter-spacing: 0.5px;
   margin-bottom: 4px;
 }
+
+/* ===== MAP FLOATING SEARCH (inside modal) ===== */
+.map-floating-search {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  gap: 6px;
+  background: rgba(255,255,255,0.97);
+  border-radius: 8px;
+  padding: 6px 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  min-width: 360px;
+  max-width: 90%;
+}
+.map-floating-search input {
+  flex: 1;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12.5px;
+  outline: none;
+}
+.map-floating-search input:focus {
+  border-color: #22c55e;
+}
+.btn-search {
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-search:hover { background: #15803d; }
+
+/* ===== MAP HINT BAR (bottom of modal) ===== */
+.map-hint-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(15,23,42,0.78);
+  color: #e2e8f0;
+  font-size: 10.5px;
+  padding: 5px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+}
+
+
+/* ===================================================================
+   FIREBASE PHONE AUTH GATE
+   =================================================================== */
+#auth-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #052e16 0%, #14532d 50%, #052e16 100%);
+  font-family: 'Inter', sans-serif;
+}
+
+.ag-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 36px 32px 28px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.45);
+  animation: agSlideUp 0.35s cubic-bezier(.16,1,.3,1);
+}
+@keyframes agSlideUp {
+  from { transform: translateY(32px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.ag-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.ag-logo-icon  { font-size: 36px; }
+.ag-logo-title { font-size: 22px; font-weight: 800; color: #052e16; line-height: 1.2; }
+.ag-logo-sub   { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+.ag-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 8px;
+}
+
+.ag-phone-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.ag-country-code {
+  background: #f1f5f9;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ag-input {
+  flex: 1;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  outline: none;
+  transition: border-color .15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+.ag-input:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,.12); }
+
+.ag-otp-input {
+  text-align: center;
+  letter-spacing: 8px;
+  font-size: 22px;
+  margin-bottom: 14px;
+}
+
+.ag-btn-primary {
+  width: 100%;
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 0;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, transform .1s;
+  margin-bottom: 6px;
+}
+.ag-btn-primary:hover:not(:disabled) { background: #15803d; transform: translateY(-1px); }
+.ag-btn-primary:disabled { background: #86efac; cursor: not-allowed; }
+
+.ag-btn-link {
+  background: none;
+  border: none;
+  color: #16a34a;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.ag-resend-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  margin-top: 8px;
+}
+
+.ag-hint {
+  font-size: 10.5px;
+  color: #94a3b8;
+  text-align: center;
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+.ag-msg {
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  margin-top: 12px;
+  text-align: center;
+}
+.ag-msg-info  { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.ag-msg-error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+/* recaptcha sits off-screen; Firebase needs it in DOM */
+#recaptcha-container { position: absolute; bottom: 0; left: 0; }
