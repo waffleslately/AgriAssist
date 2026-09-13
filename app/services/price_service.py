@@ -309,6 +309,70 @@ _LAST_KNOWN_PRICE_STORE: Dict[str, Dict[str, Any]] = {
         "market": "Davangere Mandi",
         "as_of_date": "2026-09-12",
         "source": "cached"
+    },
+    "sugarcane_uttarpradesh_meerut": {
+        "modal_price_per_quintal": 360.0,
+        "min_price": 340.0,
+        "max_price": 380.0,
+        "market": "Meerut Mandi / Mill Gate",
+        "as_of_date": "2026-09-12",
+        "source": "cached"
+    },
+    "chickpea_madhyapradesh_indore": {
+        "modal_price_per_quintal": 5620.0,
+        "min_price": 5400.0,
+        "max_price": 5800.0,
+        "market": "Indore Mandi",
+        "as_of_date": "2026-09-12",
+        "source": "cached"
+    },
+    "soybean_madhyapradesh_ujjain": {
+        "modal_price_per_quintal": 4950.0,
+        "min_price": 4700.0,
+        "max_price": 5150.0,
+        "market": "Ujjain Mandi",
+        "as_of_date": "2026-09-12",
+        "source": "cached"
+    },
+    "groundnut_gujarat_rajkot": {
+        "modal_price_per_quintal": 6920.0,
+        "min_price": 6600.0,
+        "max_price": 7200.0,
+        "market": "Rajkot Mandi",
+        "as_of_date": "2026-09-12",
+        "source": "cached"
+    },
+    "potato_uttarpradesh_agra": {
+        "modal_price_per_quintal": 1480.0,
+        "min_price": 1350.0,
+        "max_price": 1600.0,
+        "market": "Agra Mandi",
+        "as_of_date": "2026-09-12",
+        "source": "cached"
+    },
+    "sunflower_karnataka_koppal": {
+        "modal_price_per_quintal": 7320.0,
+        "min_price": 7100.0,
+        "max_price": 7500.0,
+        "market": "Koppal Mandi",
+        "as_of_date": "2026-09-12",
+        "source": "cached"
+    },
+    "moong_rajasthan_nagaur": {
+        "modal_price_per_quintal": 8740.0,
+        "min_price": 8400.0,
+        "max_price": 9100.0,
+        "market": "Nagaur Mandi",
+        "as_of_date": "2026-09-12",
+        "source": "cached"
+    },
+    "bajra_rajasthan_jaipur": {
+        "modal_price_per_quintal": 2660.0,
+        "min_price": 2500.0,
+        "max_price": 2780.0,
+        "market": "Jaipur Mandi",
+        "as_of_date": "2026-09-12",
+        "source": "cached"
     }
 }
 
@@ -424,7 +488,7 @@ class PriceService:
 
         try:
             logger.info(f"Querying data.gov.in for commodity '{commodity_name}' in {state} (district: {district})...")
-            async with httpx.AsyncClient(timeout=4.5) as client:
+            async with httpx.AsyncClient(timeout=3.0) as client:
                 resp = await client.get(self.api_endpoint, params=params)
 
             if resp.status_code == 200:

@@ -398,6 +398,10 @@ class AdminMspPayload(BaseModel):
 async def get_plot_revenue_estimate(
     plot_id: str,
     expected_yield_per_acre: Optional[float] = None,
+    crop: Optional[str] = None,
+    area_acres: Optional[float] = None,
+    state: Optional[str] = None,
+    district: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -406,12 +410,28 @@ async def get_plot_revenue_estimate(
     1. Live Mandi Market Prices from data.gov.in (Agmarknet)
     2. Official CCEA Minimum Support Price (MSP) reference floor
     3. Sensible ICAR yield-per-acre default fallback if not provided
+    4. Supports dynamic user crop preference override
     """
     plot_name = "Main Field"
     crop_name = "wheat"
-    area_acres = 2.5
-    state = "Punjab"
-    district = "Ludhiana"
+    cur_area_acres = 2.5
+    cur_state = "Punjab"
+    cur_district = "Ludhiana"
+
+    preset_plots = {
+        "plot-001": {"plot_name": "Main Field", "area_acres": 2.5, "state": "Punjab", "district": "Ludhiana", "crop_name": "wheat"},
+        "plot-002": {"plot_name": "Khet No. 1 North", "area_acres": 3.8, "state": "Punjab", "district": "Ludhiana", "crop_name": "wheat"},
+        "plot-003": {"plot_name": "Black Soil Farm", "area_acres": 4.5, "state": "Maharashtra", "district": "Yavatmal", "crop_name": "cotton"},
+        "plot-004": {"plot_name": "Green Basin", "area_acres": 5.0, "state": "Haryana", "district": "Karnal", "crop_name": "paddy"},
+        "plot-005": {"plot_name": "Sandy Loam Tract", "area_acres": 3.0, "state": "Rajasthan", "district": "Alwar", "crop_name": "mustard"}
+    }
+    if plot_id in preset_plots:
+        preset = preset_plots[plot_id]
+        plot_name = preset["plot_name"]
+        crop_name = preset["crop_name"]
+        cur_area_acres = preset["area_acres"]
+        cur_state = preset["state"]
+        cur_district = preset["district"]
 
     # Check PostgreSQL if available
     try:
@@ -421,13 +441,13 @@ async def get_plot_revenue_estimate(
             p_record = res.scalars().first()
             if p_record:
                 plot_name = p_record.name or plot_name
-                area_acres = float(p_record.area_acres or area_acres)
+                cur_area_acres = float(p_record.area_acres or cur_area_acres)
                 # Look up farmer state & district
                 f_res = await db.execute(select(Farmer).where(Farmer.id == p_record.farmer_id))
                 farmer = f_res.scalars().first()
                 if farmer:
-                    state = farmer.state or state
-                    district = farmer.district or district
+                    cur_state = farmer.state or cur_state
+                    cur_district = farmer.district or cur_district
 
                 # Look up active crop cycle
                 c_res = await db.execute(
@@ -441,10 +461,8 @@ async def get_plot_revenue_estimate(
     except Exception as e:
         try:
             await db.rollback()
-
         except Exception:
             pass
-
 
     # Fallback to in-memory FARMER_STORE
     for phone, f_data in FARMER_STORE.items():
@@ -453,18 +471,28 @@ async def get_plot_revenue_estimate(
             if str(p.get("plot_id")) == str(plot_id):
                 plot_name = p.get("plot_name", plot_name)
                 crop_name = p.get("crop_name", crop_name)
-                area_acres = float(p.get("area_acres", area_acres))
-                state = f_data.get("state", state)
-                district = f_data.get("district", district)
+                cur_area_acres = float(p.get("area_acres", cur_area_acres))
+                cur_state = f_data.get("state", cur_state)
+                cur_district = f_data.get("district", cur_district)
                 break
+
+    # Apply dynamic interactive overrides if provided by farmer in UI
+    if crop and crop.strip():
+        crop_name = crop.strip().lower()
+    if area_acres is not None and float(area_acres) > 0:
+        cur_area_acres = float(area_acres)
+    if state and state.strip():
+        cur_state = state.strip()
+    if district and district.strip():
+        cur_district = district.strip()
 
     # Resolve yield per acre (farmer custom or ICAR default)
     default_icar_yield = price_service.get_avg_yield_per_acre(crop_name)
     actual_yield_per_acre = float(expected_yield_per_acre) if (expected_yield_per_acre is not None and expected_yield_per_acre > 0) else default_icar_yield
-    total_yield_quintals = round(actual_yield_per_acre * area_acres, 2)
+    total_yield_quintals = round(actual_yield_per_acre * cur_area_acres, 2)
 
     # Fetch Live Mandi Price & MSP
-    mandi_data = await price_service.get_live_mandi_price(crop=crop_name, state=state, district=district)
+    mandi_data = await price_service.get_live_mandi_price(crop=crop_name, state=cur_state, district=cur_district)
     msp_data = price_service.get_msp_rate(crop=crop_name)
 
     modal_price = mandi_data.get("modal_price_per_quintal")
@@ -498,10 +526,10 @@ async def get_plot_revenue_estimate(
         better_option = f"Live commercial market rate. Note: {crop_name.capitalize()} is not under central MSP procurement."
         better_channel = "market"
     elif revenue_at_msp is not None:
-        better_option = f"Live mandi rates temporarily unavailable for {district} — showing government MSP floor price."
+        better_option = f"Live mandi rates temporarily unavailable for {cur_district} — showing government MSP floor price."
         better_channel = "msp"
     else:
-        better_option = f"Price data unavailable for {crop_name} in {district} right now."
+        better_option = f"Price data unavailable for {crop_name} in {cur_district} right now."
         better_channel = "unavailable"
 
     # Human-readable price source label
@@ -521,9 +549,9 @@ async def get_plot_revenue_estimate(
         "crop": crop_name,
         "crop_display": msp_data.get("crop", crop_name.capitalize()) if msp_data else crop_name.capitalize(),
         "crop_hi": msp_data.get("crop_hi", "") if msp_data else "",
-        "state": state,
-        "district": district,
-        "area_acres": area_acres,
+        "state": cur_state,
+        "district": cur_district,
+        "area_acres": cur_area_acres,
         "expected_yield_per_acre": round(actual_yield_per_acre, 2),
         "default_avg_yield_per_acre": round(default_icar_yield, 2),
         "total_yield_quintals": total_yield_quintals,

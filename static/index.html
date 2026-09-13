@@ -807,32 +807,122 @@
     <div class="tab-content" id="tab-analytics">
       <div class="section-title">📈 Field History & Performance Analytics</div>
 
+      <!-- Interactive Field & Crop Preferences Filter Bar -->
+      <div class="analytics-filter-card">
+        <div class="analytics-filter-row">
+          <div class="analytics-filter-col" style="flex: 1.2; min-width: 170px;">
+            <label class="filter-label" for="analytics-plot-select">
+              <span>📍</span> Selected Field / Plot
+            </label>
+            <select id="analytics-plot-select" class="form-control-sm analytics-select" onchange="onAnalyticsPlotChanged(this.value)">
+              <option value="plot-001" data-area="2.5" data-state="Punjab" data-district="Ludhiana" data-crop="wheat" selected>
+                Plot 1: Main Field (2.5 Ac · Ludhiana, Punjab)
+              </option>
+              <option value="plot-002" data-area="3.8" data-state="Punjab" data-district="Ludhiana" data-crop="wheat">
+                Plot 2: Khet No. 1 North (3.8 Ac · Ludhiana, Punjab)
+              </option>
+              <option value="plot-003" data-area="4.5" data-state="Maharashtra" data-district="Yavatmal" data-crop="cotton">
+                Plot 3: Black Soil Farm (4.5 Ac · Yavatmal, MH)
+              </option>
+              <option value="plot-004" data-area="5.0" data-state="Haryana" data-district="Karnal" data-crop="paddy">
+                Plot 4: Green Basin (5.0 Ac · Karnal, Haryana)
+              </option>
+              <option value="plot-005" data-area="3.0" data-state="Rajasthan" data-district="Alwar" data-crop="mustard">
+                Plot 5: Sandy Loam Tract (3.0 Ac · Alwar, Rajasthan)
+              </option>
+            </select>
+          </div>
+
+          <div class="analytics-filter-col" style="flex: 1.2; min-width: 170px;">
+            <label class="filter-label" for="analytics-crop-select">
+              <span>🌾</span> Crop Preference
+            </label>
+            <select id="analytics-crop-select" class="form-control-sm analytics-select" onchange="onAnalyticsCropChanged(this.value)">
+              <option value="wheat" selected>🌾 Wheat (गेहूं) · Rabi</option>
+              <option value="paddy">🍃 Paddy / Rice (धान) · Kharif</option>
+              <option value="cotton">☁️ Cotton (कपास) · Kharif</option>
+              <option value="maize">🌽 Maize (मक्का) · Kharif</option>
+              <option value="mustard">🌼 Mustard / Rapeseed (सरसों) · Rabi</option>
+              <option value="sugarcane">🎋 Sugarcane (गन्ना) · Annual</option>
+              <option value="chickpea">🌿 Gram / Chickpea (चना) · Rabi</option>
+              <option value="soybean">🌱 Soybean (सोयाबीन) · Kharif</option>
+              <option value="groundnut">🥜 Groundnut (मूंगफली) · Kharif</option>
+              <option value="potato">🥔 Potato (आलू) · Rabi</option>
+              <option value="sunflower">🌻 Sunflower (सूरजमुखी) · Kharif</option>
+              <option value="moong">🟢 Moong / Green Gram (मूंग) · Kharif</option>
+              <option value="bajra">🌾 Bajra / Pearl Millet (बाजरा) · Kharif</option>
+            </select>
+          </div>
+
+          <div class="analytics-filter-col" style="flex: 0.6; min-width: 90px;">
+            <label class="filter-label" for="analytics-area-input">
+              <span>📐</span> Area (Acres)
+            </label>
+            <input type="number" id="analytics-area-input" class="form-control-sm analytics-select" value="2.5" min="0.1" max="500" step="0.1" oninput="onAnalyticsAreaChanged(this.value)" />
+          </div>
+        </div>
+
+        <!-- Quick Switch Crop Filter Chips -->
+        <div class="crop-pills-wrap">
+          <span class="crop-pills-label">Quick Switch:</span>
+          <div class="crop-pills-scroller" id="crop-filter-pills">
+            <button type="button" class="crop-pill active" data-crop="wheat" onclick="selectCropPill('wheat')">
+              🌾 Wheat
+            </button>
+            <button type="button" class="crop-pill" data-crop="paddy" onclick="selectCropPill('paddy')">
+              🍃 Paddy
+            </button>
+            <button type="button" class="crop-pill" data-crop="cotton" onclick="selectCropPill('cotton')">
+              ☁️ Cotton
+            </button>
+            <button type="button" class="crop-pill" data-crop="maize" onclick="selectCropPill('maize')">
+              🌽 Maize
+            </button>
+            <button type="button" class="crop-pill" data-crop="mustard" onclick="selectCropPill('mustard')">
+              🌼 Mustard
+            </button>
+            <button type="button" class="crop-pill" data-crop="sugarcane" onclick="selectCropPill('sugarcane')">
+              🎋 Sugarcane
+            </button>
+            <button type="button" class="crop-pill" data-crop="chickpea" onclick="selectCropPill('chickpea')">
+              🌿 Gram
+            </button>
+            <button type="button" class="crop-pill" data-crop="soybean" onclick="selectCropPill('soybean')">
+              🌱 Soybean
+            </button>
+            <button type="button" class="crop-pill" data-crop="potato" onclick="selectCropPill('potato')">
+              🥔 Potato
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- KPI Summary -->
       <div class="analytics-kpi-bar">
         <div class="analytics-kpi-card kpi-blue">
-          <div class="kpi-val-title">₹ 14.8 L</div>
-          <div class="kpi-val-desc">5-Yr Revenue (Blue)</div>
+          <div class="kpi-val-title" id="kpi-rev-val">₹ 14.8 L</div>
+          <div class="kpi-val-desc" id="kpi-rev-desc">5-Yr Revenue (Blue)</div>
         </div>
         <div class="analytics-kpi-card kpi-green">
-          <div class="kpi-val-title">505 mm</div>
-          <div class="kpi-val-desc">Avg Rain/Yr (Green)</div>
+          <div class="kpi-val-title" id="kpi-rain-val">505 mm</div>
+          <div class="kpi-val-desc" id="kpi-rain-desc">Avg Rain/Yr (Green)</div>
         </div>
         <div class="analytics-kpi-card kpi-red">
-          <div class="kpi-val-title">7.2%</div>
-          <div class="kpi-val-desc">Current Stress (Red)</div>
+          <div class="kpi-val-title" id="kpi-stress-val">7.2%</div>
+          <div class="kpi-val-desc" id="kpi-stress-desc">Current Stress (Red)</div>
         </div>
       </div>
 
       <!-- GRAPH 1: CROP REVENUE HISTORY (BLUE) -->
       <div class="analytics-graph-card graph-card-blue">
         <div class="graph-header">
-          <div class="graph-title" style="color:var(--chart-blue-primary)">
-            <span>💰</span> 1. Crop Revenue History (₹ in Lakhs)
+          <div class="graph-title" id="graph-revenue-title" style="color:var(--chart-blue-primary)">
+            <span>💰</span> 1. Crop Revenue History: <span id="analytics-crop-title-tag">Wheat (गेंहू)</span> (₹ in Lakhs)
           </div>
           <span class="graph-badge badge-blue">Blue Metric</span>
         </div>
 
-        <svg class="graph-svg-canvas" viewBox="0 0 470 110">
+        <svg class="graph-svg-canvas" viewBox="0 0 470 110" id="analytics-rev-svg">
           <defs>
             <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.4"/>
@@ -843,21 +933,22 @@
           <line x1="45" y1="50" x2="455" y2="50" stroke="var(--ag-border)" stroke-dasharray="2"/>
           <line x1="45" y1="85" x2="455" y2="85" stroke="var(--ag-border)"/>
 
-          <text x="10" y="19" font-size="9" fill="var(--ag-text-muted)">₹6L</text>
-          <text x="10" y="54" font-size="9" fill="var(--ag-text-muted)">₹3L</text>
+          <text x="10" y="19" font-size="9" fill="var(--ag-text-muted)" id="graph-rev-y-top">₹6L</text>
+          <text x="10" y="54" font-size="9" fill="var(--ag-text-muted)" id="graph-rev-y-mid">₹3L</text>
           <text x="10" y="89" font-size="9" fill="var(--ag-text-muted)">₹0</text>
 
-          <polygon points="65,85 65,60 140,52 215,42 290,26 365,18 440,12 440,85" fill="url(#blueGrad)"/>
-          <polyline fill="none" stroke="var(--chart-blue-primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+          <polygon id="graph-rev-polygon" points="65,85 65,60 140,52 215,42 290,26 365,18 440,12 440,85" fill="url(#blueGrad)"/>
+          <polyline id="graph-rev-polyline" fill="none" stroke="var(--chart-blue-primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
             points="65,60 140,52 215,42 290,26 365,18 440,12" style="filter:var(--chart-blue-glow)"/>
 
-          <circle class="graph-dot-elem" cx="65" cy="60" r="4.5" fill="var(--chart-blue-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2021)"/>
-          <text x="56" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2021</text>
-          <text x="56" y="52" font-size="9" fill="var(--chart-blue-primary)" font-weight="800">₹1.9L</text>
+          <g id="graph-rev-nodes">
+            <circle class="graph-dot-elem" cx="65" cy="60" r="4.5" fill="var(--chart-blue-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2021)"/>
+            <text x="56" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2021</text>
+            <text x="56" y="52" font-size="9" fill="var(--chart-blue-primary)" font-weight="800">₹1.9L</text>
 
-          <circle class="graph-dot-elem" cx="140" cy="52" r="4.5" fill="var(--chart-blue-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2022)"/>
-          <text x="131" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2022</text>
-          <text x="131" y="44" font-size="9" fill="var(--chart-blue-primary)" font-weight="800">₹2.4L</text>
+            <circle class="graph-dot-elem" cx="140" cy="52" r="4.5" fill="var(--chart-blue-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2022)"/>
+            <text x="131" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2022</text>
+            <text x="131" y="44" font-size="9" fill="var(--chart-blue-primary)" font-weight="800">₹2.4L</text>
 
           <circle class="graph-dot-elem" cx="215" cy="42" r="4.5" fill="var(--chart-blue-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2023)"/>
           <text x="206" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2023</text>
@@ -871,9 +962,10 @@
           <text x="356" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2025</text>
           <text x="356" y="12" font-size="9" fill="var(--chart-blue-primary)" font-weight="800">₹4.9L</text>
 
-          <circle class="graph-dot-elem" cx="440" cy="12" r="4.5" fill="var(--chart-blue-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2026)"/>
-          <text x="430" y="99" font-size="9.5" fill="var(--chart-blue-primary)" font-weight="800">2026*</text>
-          <text x="424" y="8" font-size="8.5" fill="var(--chart-blue-primary)" font-weight="800">₹5.4L</text>
+            <circle class="graph-dot-elem" cx="440" cy="12" r="4.5" fill="var(--chart-blue-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2026)"/>
+            <text x="430" y="99" font-size="9.5" fill="var(--chart-blue-primary)" font-weight="800">2026*</text>
+            <text x="424" y="8" font-size="8.5" fill="var(--chart-blue-primary)" font-weight="800">₹5.4L</text>
+          </g>
         </svg>
       </div>
 
@@ -930,7 +1022,7 @@
           <span class="graph-badge badge-red">Red Metric (Lower is Better)</span>
         </div>
 
-        <svg class="graph-svg-canvas" viewBox="0 0 470 110">
+        <svg class="graph-svg-canvas" viewBox="0 0 470 110" id="analytics-stress-svg">
           <rect x="45" y="15" width="410" height="28" fill="rgba(255,42,95,0.12)"/>
           <line x1="45" y1="43" x2="455" y2="43" stroke="var(--chart-red-primary)" stroke-dasharray="3"/>
           <text x="390" y="39" font-size="7.5" fill="var(--chart-red-primary)" font-weight="700">Critical (>25%)</text>
@@ -942,32 +1034,34 @@
           <text x="10" y="54" font-size="9" fill="var(--ag-text-muted)">25%</text>
           <text x="10" y="89" font-size="9" fill="var(--ag-text-muted)">0%</text>
 
-          <polyline fill="none" stroke="var(--chart-red-primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+          <polyline id="graph-stress-polyline" fill="none" stroke="var(--chart-red-primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
             points="65,30 140,36 215,55 290,68 365,74 440,77" style="filter:var(--chart-red-glow)" />
 
-          <circle class="graph-dot-elem" cx="65" cy="30" r="4.5" fill="var(--chart-red-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2021)"/>
-          <text x="56" y="24" font-size="9" fill="var(--chart-red-primary)" font-weight="800">38%</text>
-          <text x="56" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2021</text>
+          <g id="graph-stress-nodes">
+            <circle class="graph-dot-elem" cx="65" cy="30" r="4.5" fill="var(--chart-red-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2021)"/>
+            <text x="56" y="24" font-size="9" fill="var(--chart-red-primary)" font-weight="800">38%</text>
+            <text x="56" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2021</text>
 
-          <circle class="graph-dot-elem" cx="140" cy="36" r="4.5" fill="var(--chart-red-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2022)"/>
-          <text x="131" y="28" font-size="9" fill="var(--chart-red-primary)" font-weight="800">34%</text>
-          <text x="131" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2022</text>
+            <circle class="graph-dot-elem" cx="140" cy="36" r="4.5" fill="var(--chart-red-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2022)"/>
+            <text x="131" y="28" font-size="9" fill="var(--chart-red-primary)" font-weight="800">34%</text>
+            <text x="131" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2022</text>
 
-          <circle class="graph-dot-elem" cx="215" cy="55" r="4.5" fill="var(--chart-red-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2023)"/>
-          <text x="206" y="49" font-size="9" fill="var(--chart-red-primary)" font-weight="800">21%</text>
-          <text x="206" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2023</text>
+            <circle class="graph-dot-elem" cx="215" cy="55" r="4.5" fill="var(--chart-red-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2023)"/>
+            <text x="206" y="49" font-size="9" fill="var(--chart-red-primary)" font-weight="800">21%</text>
+            <text x="206" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2023</text>
 
-          <circle class="graph-dot-elem" cx="290" cy="68" r="4.5" fill="var(--chart-red-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2024)"/>
-          <text x="281" y="62" font-size="9" fill="var(--chart-red-primary)" font-weight="800">12%</text>
-          <text x="281" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2024</text>
+            <circle class="graph-dot-elem" cx="290" cy="68" r="4.5" fill="var(--chart-red-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2024)"/>
+            <text x="281" y="62" font-size="9" fill="var(--chart-red-primary)" font-weight="800">12%</text>
+            <text x="281" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2024</text>
 
-          <circle class="graph-dot-elem" cx="365" cy="74" r="4.5" fill="var(--chart-red-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2025)"/>
-          <text x="356" y="68" font-size="9" fill="var(--chart-red-primary)" font-weight="800">8.5%</text>
-          <text x="356" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2025</text>
+            <circle class="graph-dot-elem" cx="365" cy="74" r="4.5" fill="var(--chart-red-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2025)"/>
+            <text x="356" y="68" font-size="9" fill="var(--chart-red-primary)" font-weight="800">8.5%</text>
+            <text x="356" y="99" font-size="9.5" fill="var(--ag-text-muted)" font-weight="700">2025</text>
 
-          <circle class="graph-dot-elem" cx="440" cy="77" r="4.5" fill="var(--chart-red-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2026)"/>
-          <text x="430" y="70" font-size="8.5" fill="var(--chart-red-primary)" font-weight="800">6.8%</text>
-          <text x="428" y="99" font-size="9.5" fill="var(--chart-red-primary)" font-weight="800">2026*</text>
+            <circle class="graph-dot-elem" cx="440" cy="77" r="4.5" fill="var(--chart-red-primary)" stroke="#ffffff" stroke-width="2" onclick="selectAnalyticsYear(2026)"/>
+            <text x="430" y="70" font-size="8.5" fill="var(--chart-red-primary)" font-weight="800">6.8%</text>
+            <text x="428" y="99" font-size="9.5" fill="var(--chart-red-primary)" font-weight="800">2026*</text>
+          </g>
         </svg>
       </div>
 
@@ -975,7 +1069,7 @@
       <div class="analytics-graph-card graph-card-gold" id="revenue-calculator-card">
         <div class="graph-header">
           <div class="graph-title" style="color:var(--ag-wheat, #d97706)">
-            <span>🌾</span> 4. Live Crop Revenue Calculator
+            <span>🌾</span> 4. Live Crop Revenue Calculator: <span id="rev-card-crop-tag" style="font-weight:700">Wheat (गेहूं)</span>
           </div>
           <span class="graph-badge badge-gold" id="rev-source-badge">Live · Agmarknet</span>
         </div>

@@ -2252,16 +2252,41 @@ let yieldDebounceTimer = null;
 window._currentIcarYield = 19.5;
 window._currentRevenuePlotId = null;
 
-window.loadRevenueCalculator = async function(customYield) {
-  // Determine plot ID from active farmer or default
-  let plotId = '00000000-0000-0000-0000-000000000001';
-  if (typeof currentFarmer !== 'undefined' && currentFarmer && currentFarmer.plots && currentFarmer.plots.length > 0) {
+window.loadRevenueCalculator = async function(customYield, cropOverride, areaOverride) {
+  // Determine plot ID from active farmer, selected land, or default
+  let plotId = window._currentRevenuePlotId || 'plot-001';
+  const plotSelect = document.getElementById('analytics-plot-select');
+  if (plotSelect && plotSelect.value) {
+    plotId = plotSelect.value;
+  } else if (typeof currentFarmer !== 'undefined' && currentFarmer && currentFarmer.plots && currentFarmer.plots.length > 0) {
     plotId = currentFarmer.plots[0].plot_id || plotId;
   }
   window._currentRevenuePlotId = plotId;
 
+  // Determine crop from override or dropdown
+  let crop = cropOverride;
+  if (!crop) {
+    const cropSelect = document.getElementById('analytics-crop-select');
+    if (cropSelect && cropSelect.value) {
+      crop = cropSelect.value;
+    } else {
+      crop = 'wheat';
+    }
+  }
+
+  // Determine area from override or input
+  let area = areaOverride || window._currentRevenueArea;
+  if (!area) {
+    const areaInput = document.getElementById('analytics-area-input');
+    if (areaInput && areaInput.value) {
+      area = parseFloat(areaInput.value);
+    } else {
+      area = 2.5;
+    }
+  }
+
   try {
-    const data = await apiGetRevenueEstimate(plotId, customYield);
+    const data = await apiGetRevenueEstimate(plotId, customYield, crop, area);
     renderRevenueCalculator(data, customYield);
   } catch (err) {
     console.warn('Revenue calculator fetch note:', err);
@@ -2292,6 +2317,9 @@ function renderRevenueCalculator(data, customYield) {
   // 2. Crop & Plot Context
   const cropEl = document.getElementById('rev-crop-name');
   if (cropEl) cropEl.textContent = `${data.crop_display} (${data.crop_hi || data.crop})`;
+
+  const cardTag = document.getElementById('rev-card-crop-tag');
+  if (cardTag) cardTag.textContent = `${data.crop_display} (${data.crop_hi || data.crop})`;
 
   const areaEl = document.getElementById('rev-plot-area');
   if (areaEl) areaEl.textContent = data.area_acres;
@@ -2392,7 +2420,9 @@ function debouncedRecalculateRevenue(yieldVal) {
   if (isNaN(yieldVal) || yieldVal <= 0) return;
   if (yieldDebounceTimer) clearTimeout(yieldDebounceTimer);
   yieldDebounceTimer = setTimeout(() => {
-    window.loadRevenueCalculator(yieldVal);
+    const crop = document.getElementById('analytics-crop-select')?.value || 'wheat';
+    const area = parseFloat(document.getElementById('analytics-area-input')?.value) || 2.5;
+    window.loadRevenueCalculator(yieldVal, crop, area);
   }, 300);
 }
 
@@ -2402,7 +2432,9 @@ window.resetToIcarYield = function() {
     const slider = document.getElementById('rev-yield-slider');
     if (numInput) numInput.value = window._currentIcarYield;
     if (slider) slider.value = window._currentIcarYield;
-    window.loadRevenueCalculator(window._currentIcarYield);
+    const crop = document.getElementById('analytics-crop-select')?.value || 'wheat';
+    const area = parseFloat(document.getElementById('analytics-area-input')?.value) || 2.5;
+    window.loadRevenueCalculator(window._currentIcarYield, crop, area);
   }
 };
 

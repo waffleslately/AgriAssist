@@ -211,15 +211,24 @@ async function apiNutrientPlan(reportId, crop, acres, lat, lng) {
 }
 
 // Revenue Calculator: Real-time Mandi Market Price & CCEA MSP Estimation
-async function apiGetRevenueEstimate(plotId, expectedYieldPerAcre) {
+async function apiGetRevenueEstimate(plotId, expectedYieldPerAcre, cropName, areaAcres) {
   const token = localStorage.getItem('kisan_token');
   const headers = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  let url = `${BASE}/api/v1/plots/${plotId}/revenue-estimate`;
+  const params = new URLSearchParams();
   if (expectedYieldPerAcre != null && expectedYieldPerAcre !== '') {
-    url += `?expected_yield_per_acre=${encodeURIComponent(expectedYieldPerAcre)}`;
+    params.append('expected_yield_per_acre', expectedYieldPerAcre);
   }
+  if (cropName != null && cropName !== '') {
+    params.append('crop', cropName);
+  }
+  if (areaAcres != null && areaAcres !== '') {
+    params.append('area_acres', areaAcres);
+  }
+
+  const q = params.toString();
+  const url = `${BASE}/api/v1/plots/${plotId}/revenue-estimate${q ? '?' + q : ''}`;
 
   const res = await fetch(url, { headers });
   if (!res.ok) {
